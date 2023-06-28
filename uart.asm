@@ -1,0 +1,154 @@
+;
+; Copyright Jacques Deschênes 2023 
+; This file is part of stm8_terminal 
+;
+;     stm8_terminal is free software: you can redistribute it and/or modify
+;     it under the terms of the GNU General Public License as published by
+;     the Free Software Foundation, either version 3 of the License, or
+;     (at your option) any later version.
+;
+;     stm8_terminal is distributed in the hope that it will be useful,
+;     but WITHOUT ANY WARRANTY; without even the implied warranty of
+;     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;     GNU General Public License for more details.
+;
+;     You should have received a copy of the GNU General Public License
+;     along with stm8_terminal.  If not, see <http://www.gnu.org/licenses/>.
+;;
+
+;--------------------------
+; UART receive character
+; in a FIFO buffer 
+; CTRL+C (ASCII 3)
+; cancel program execution
+; and fall back to command line
+; CTRL+X reboot system 
+; CTLR+Z erase EEPROM autorun 
+;        information and reboot
+;--------------------------
+UartRxHandler: ; console receive char 
+	btjf UART_SR,#UART_SR_RXNE,5$ 
+	ld a,UART_DR 
+.if 0
+	cp a,#CTRL_C 
+	jrne 2$
+	jp user_interrupted
+2$:
+	cp a,#CAN ; CTRL_X 
+	jrne 3$
+	_swreset 	
+3$:	cp a,#CTRL_Z 
+	jrne 4$
+	call clear_autorun
+	_swreset 
+.endif 
+4$:
+	push a 
+	ld a,#rx1_queue 
+	add a,rx1_tail 
+	clrw x 
+	ld xl,a 
+	pop a 
+	ld (x),a 
+	ld a,rx1_tail 
+	inc a 
+	and a,#RX_QUEUE_SIZE-1
+	ld rx1_tail,a 
+5$:	iret 
+
+
+;---------------------------------------------
+; initialize UART, 115200 8N1
+; called from cold_start in hardware_init.asm 
+; input:
+;	none
+; output:
+;   none
+;---------------------------------------------
+BAUD_RATE=115200 
+	N1=1
+	N2=N1+2 
+	VSIZE=N2+2
+uart_init:
+	_vars VSIZE 
+	bset UART_PORT_DDR,#UART_TX_PIN 
+    bset UART_PORT_CR1,#UART_TX_PIN 
+    bset UART_PORT_CR2,#UART_TX_PIN 
+; enable UART clock
+	bset CLK_PCKENR1,#UART_PCKEN 	
+	bres UART,#UART_CR1_PIEN
+; baud rate 115200
+.if 0
+; BRR value = Fmaster/115200 
+	clrw x 
+	_ldaz fmstr 
+	rlwa x 
+	_i24_store N1 
+	ldw x,#10000
+	_i24_store N2 
+	call mul24
+	_i24_store N1   
+	clr a 
+	ldw x,#BAUD_RATE/100
+	_i24_store N2
+	call div24 ; A:X quotient, N2: remainder 
+	_i24_store N1 
+	_i24_fetch N2 
+	cpw x,#BAUD_RATE/200
+	jrmi 1$ 
+	inc (N1+2,sp)
+	jrne 1$ 
+	inc (N1+1,sp) 
+1$:  _i24_fetch N1 
+; // brr value in X
+	ld a,#16 
+	div x,a 
+	push a  ; least nibble of BRR1 
+	rlwa x 
+	swap a  ; high nibble of BRR1 
+	or a,(1,sp)
+	_drop 1 
+	ld UART_BRR2,a 
+	ld a,xh 
+	ld UART_BRR1,a 
+.else 
+	mov UART_BRR2,#0xb
+	mov UART_BRR1,#0x8 
+.endif 
+3$:
+    clr UART_DR
+	mov UART_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN)|(1<<UART_CR2_RIEN));
+	bset UART_CR2,#UART_CR2_SBK
+    btjf UART_SR,#UART_SR_TC,.
+    clr rx1_head 
+	clr rx1_tail
+	bset UART,#UART_CR1_PIEN
+	_drop VSIZE 
+	ret
+
+
+;---------------------------------
+; uart_putc
+; send a character via UART
+; input:
+;    A  	character to send
+;---------------------------------
+uart_putc:: 
+	btjf UART_SR,#UART_SR_TXE,.
+	ld UART_DR,a 
+	ret 
+
+
+;---------------------------------
+; Query for character in rx1_queue
+; input:
+;   none 
+; output:
+;   A     0 no charcter available
+;   Z     1 no character available
+;---------------------------------
+qgetc::
+uart_qgetc::
+	_ldaz rx1_head 
+	sub a,rx1_tail 
+	ret 

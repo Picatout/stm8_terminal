@@ -1,19 +1,19 @@
 ;;
-; Copyright Jacques Deschênes 2023 
-; This file is part of stm8_terminal 
+; Copyright Jacques Deschênes 2019,2022  
+; This file is part of stm8_tbi 
 ;
-;     stm8_terminal is free software: you can redistribute it and/or modify
+;     stm8_tbi is free software: you can redistribute it and/or modify
 ;     it under the terms of the GNU General Public License as published by
 ;     the Free Software Foundation, either version 3 of the License, or
 ;     (at your option) any later version.
 ;
-;     stm8_terminal is distributed in the hope that it will be useful,
+;     stm8_tbi is distributed in the hope that it will be useful,
 ;     but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;     GNU General Public License for more details.
 ;
 ;     You should have received a copy of the GNU General Public License
-;     along with stm8_terminal.  If not, see <http://www.gnu.org/licenses/>.
+;     along with stm8_tbi.  If not, see <http://www.gnu.org/licenses/>.
 ;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -29,39 +29,17 @@
 
     .include "config.inc"
 
+STAKC_SIZE=128   
+;;-----------------------------------
+    .area SSEG (ABS)
+;; working buffers and stack at end of RAM. 	
+;;-----------------------------------
+    .org RAM_SIZE-STACK_SIZE 
+stack_full:: .ds STACK_SIZE   ; control stack 
+stack_unf: ; stack underflow ; control_stack bottom 
 
-SYS_VARS_ORG=4 
-
-; application vars start at this address 
-APP_VARS_START_ADR==SYS_VARS_ORG+SYS_VARS_SIZE+ARITHM_VARS_SIZE+TERMIOS_VARS_SIZE
-
-;--------------------------------
-	.area DATA (ABS)
-	.org SYS_VARS_ORG  
-;---------------------------------
-
-ticks: .blkw 1 ; millisecond system ticks 
-timer: .blkw 1 ; msec count down timer 
-tone_ms: .blkw 1 ; tone duration msec 
-sys_flags: .blkb 1; system boolean flags 
-seedx: .blkw 1  ; bits 31...15 used by 'prng' function
-seedy: .blkw 1  ; bits 15...0 used by 'prng' function 
-base: .blkb 1 ;  numeric base used by 'print_int' 
-fmstr: .blkb 1 ; Fmaster frequency in Mhz
-farptr: .blkb 1 ; 24 bits pointer used by file system, upper-byte
-ptr16::  .blkb 1 ; 16 bits pointer , farptr high-byte 
-ptr8:   .blkb 1 ; 8 bits pointer, farptr low-byte  
-trap_ret: .blkw 1 ; trap return address 
-kvars_end: 
-SYS_VARS_SIZE==kvars_end-ticks   
-
-; system boolean flags 
-FSYS_TIMER==0 
-FSYS_TONE==1 
-FSYS_UPPER==2 ; getc uppercase all letters 
-  
 ;;--------------------------------------
-    .area HOME
+    .area HOME 
 ;; interrupt vector table at 0x8000
 ;;--------------------------------------
 
@@ -74,12 +52,12 @@ FSYS_UPPER==2 ; getc uppercase all letters
 	int NonHandledInterrupt ;int4 EXTI1 gpio B external interrupts
 	int NonHandledInterrupt ;int5 EXTI2 gpio C external interrupts
 	int NonHandledInterrupt ;int6 EXTI3 gpio D external interrupts
-	int NonHandledInterrupt ;int7 EXTI4 gpio E external interrupt 
+	int NonHandledInterrupt ;int7 EXTI4 gpio E external interrupts
 	int NonHandledInterrupt ;int8 beCAN RX interrupt
 	int NonHandledInterrupt ;int9 beCAN TX/ER/SC interrupt
 	int NonHandledInterrupt ;int10 SPI End of transfer
 	int NonHandledInterrupt ;int11 TIM1 update/overflow/underflow/trigger/break
-	int NonHandledInterrupt ;int12 TIM1 ; TIM1 capture/compare
+	int NonHandledInterrupt ;int11 TIM1 ; int12 TIM1 capture/compare
 	int NonHandledInterrupt ;int13 TIM2 update /overflow
 	int NonHandledInterrupt ;int14 TIM2 capture/compare
 	int NonHandledInterrupt ;int15 TIM3 Update/overflow
@@ -90,7 +68,7 @@ FSYS_UPPER==2 ; getc uppercase all letters
 .else 
 	int NonHandledInterrupt ;int18 UART1 RX full 
 .endif 
-	int NonHandledInterrupt ; int19 i2c
+	int NonHandledInterrupt ;int19 I2C 
 	int NonHandledInterrupt ;int20 UART3 TX completed
 .if NUCLEO_8S207K8  
 	int UartRxHandler 		;int21 UART3 RX full
@@ -107,8 +85,29 @@ FSYS_UPPER==2 ; getc uppercase all letters
 	int NonHandledInterrupt ;int29  not used
 
 
+;--------------------------------------
+    .area DATA (ABS)
+	.org 0 
+;--------------------------------------	
+
+; keep the following 3 variables in this order 
+base::  .blkb 1 ; nemeric base used to print integer 
+acc32:: .blkb 1 ; 32 bit accumalator upper-byte 
+acc24:: .blkb 1 ; 24 bits accumulator upper-byte 
+acc16:: .blkb 1 ; 16 bits accumulator, acc24 high-byte
+acc8::  .blkb 1 ;  8 bits accumulator, acc24 low-byte  
+fmstr:: .blkb 1 ; frequency in Mhz of Fmaster
+ticks: .blkb 3 ; milliseconds ticks counter (see Timer4UpdateHandler)
+farptr: .blkb 1 ; 24 bits pointer used by file system, upper-byte
+ptr16::  .blkb 1 ; 16 bits pointer , farptr high-byte 
+ptr8:   .blkb 1 ; 8 bits pointer, farptr low-byte  
+flags:: .blkb 1 ; various boolean flags
+rx1_queue: .ds RX_QUEUE_SIZE ; UART1 receive circular queue 
+rx1_head:  .blkb 1 ; rx1_queue head pointer
+rx1_tail:   .blkb 1 ; rx1_queue tail pointer  
+out: .blkw 1 ; output char routine address 
+
 	.area CODE 
-;	.org 0x8080 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; non handled interrupt 
@@ -117,22 +116,30 @@ FSYS_UPPER==2 ; getc uppercase all letters
 NonHandledInterrupt:
 	_swreset ; see "inc/gen_macros.inc"
 
-.if 0
-user_interrupted:
-; BASIC program can be 
-; interrupted by CTRL+C 
-; in case locked in infinite loop. 
-    btjt flags,#FRUN,4$
-	ret 
-4$:	; program interrupted by user 
-	bres flags,#FRUN 
-;	ldw x,#USER_ABORT
-;	call puts 
-5$:	jp warm_start
 
+;------------------------------------
+; sofware interrupt handler  
+;------------------------------------
+TrapHandler:
+	iret 
 
-;USER_ABORT: .asciz "\nProgram aborted by user.\n"
-.endif 
+;------------------------------
+; TIMER 4 is used to maintain 
+; a milliseconds 'ticks' counter
+;--------------------------------
+Timer4UpdateHandler:
+	clr TIM4_SR 
+	_ldaz ticks 
+	_ldxz ticks+1
+	addw x,#1 
+	adc a,#0 
+	jrpl 0$
+; reset to 0 when negative
+	clr a 
+	clrw x 
+0$:	_straz ticks 
+	ldw ticks+1,x 
+	iret 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    peripherals initialization
@@ -161,7 +168,6 @@ clock_init:
 ; cpu clock divisor 
 	ld a,xl 
 	ld CLK_CKDIVR,a  
-	clr CLK_CKDIVR 
 	ret
 
 ;----------------------------------
@@ -169,6 +175,7 @@ clock_init:
 ; on port D:5. CN9-6
 ; channel 1 configured as PWM mode 1 
 ;-----------------------------------  
+
 timer2_init:
 	bset CLK_PCKENR1,#CLK_PCKENR1_TIM2 ; enable TIMER2 clock 
  	mov TIM2_CCMR1,#(6<<TIM2_CCMR_OCM) ; PWM mode 1 
@@ -265,14 +272,13 @@ set_int_priority::
 ;  initialization entry point 
 ;-------------------------------------
 cold_start:
-;at reset stack pointer is at RAM_END  
-; clear all ram
-	ldw x,sp 
-.if 0	
+;set stack 
+	ldw x,#STACK_EMPTY
+	ldw sp,x
+; clear all ram 
 0$: clr (x)
 	decw x 
 	jrne 0$
-.endif 	
 ; activate pull up on all inputs 
 	ld a,#255 
 	ld PA_CR1,a 
@@ -290,72 +296,23 @@ cold_start:
 	bres LED_PORT+GPIO_ODR,#LED_BIT ; turn on user LED  
 ; disable schmitt triggers on Arduino CN4 analog inputs
 	mov ADC_TDRL,0x3f
-; select internal clock no divisor: 16 Mhz 	
+.if 0
+; initialize auto wakeup with LSI clock
+	clr AWU_TBR 
+	bset CLK_PCKENR2,#CLK_PCKENR2_AWU ; enable LSI for AWU 
+.endif 
+; select external clock no divisor: 16 Mhz 	
 	ld a,#16 ; Mhz 
-	ldw x,#CLK_SWR_HSI<<8   ; high speed internal oscillator 
+	ldw x,#CLK_SWR_HSE<<8   ; external oscillator 
     call clock_init 
 ; UART at 115200 BAUD
 ; used for user interface 
-	ldw x,#uart_putc 
-	ldw out,x 
 	call uart_init
 	call timer4_init ; msec ticks timer 
-	call timer2_init ; tone generator 	
 	rim ; enable interrupts 
-	mov base,#10
-	_clrz sys_flags 
-	call beep_1khz  ;
-	ldw x,#-1
-	call set_seed 
+    ld a,#'O 
+    call uart_putc 
+    ld a,#'K 
+    call uart_putc 
+    jra . 
 
-; jp kernel_test 	
-	jp WOZMON
-
-.if 1
-	bset sys_flags,#FSYS_UPPER 
-call new_line 	
-test: ; test compiler 
-	ld a,#'> 
-	call putc 
-	call readln 
-	call compile 
-	call dump_code 
-	jra test 
-
-dump_code: 
-	ldw y,#pad 
-	push #16  
-	ld a,(2,y)
-	push a
-	ld a,yh 
-	call print_hex 
-	ld a,yl  
-	call print_hex
-	ldw x,#2 
-	call spaces 
-1$: 
-	ld a,(y)
-	call print_hex 
-	call space 
-	incw y
-	dec (2,sp)
-	jrne 2$ 
-	call new_line 
-	ld a,yh 
-	call print_hex 
-	ld a,yl  
-	call print_hex
-	ldw x,#2 
-	call spaces 
-	ld a,#16
-	ld (2,sp),a 
-2$:
-	dec (1,sp) 
-	jrne 1$ 
-9$: _drop 2 
-	call new_line 
-	ldw x,#pad   
-	ld a,(2,x)
-	call prt_basic_line 
-	ret 	
-.endif 
