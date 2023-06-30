@@ -34,9 +34,11 @@ STAKC_SIZE=128
     .area SSEG (ABS)
 ;; working buffers and stack at end of RAM. 	
 ;;-----------------------------------
-    .org RAM_SIZE-STACK_SIZE 
+    .org RAM_SIZE-STACK_SIZE-1000 
+video_buffer: .blkb 40*25
 stack_full:: .ds STACK_SIZE   ; control stack 
 stack_unf: ; stack underflow ; control_stack bottom 
+
 
 ;;--------------------------------------
     .area HOME 
@@ -56,8 +58,8 @@ stack_unf: ; stack underflow ; control_stack bottom
 	int NonHandledInterrupt ;int8 beCAN RX interrupt
 	int NonHandledInterrupt ;int9 beCAN TX/ER/SC interrupt
 	int NonHandledInterrupt ;int10 SPI End of transfer
-	int NonHandledInterrupt ;int11 TIM1 update/overflow/underflow/trigger/break
-	int NonHandledInterrupt ;int11 TIM1 ; int12 TIM1 capture/compare
+	int ntsc_sync_interrupt ;int11 TIM1 update/overflow/underflow/trigger/break
+	int ntsc_video_interrupt ; int12 TIM1 capture/compare
 	int NonHandledInterrupt ;int13 TIM2 update /overflow
 	int NonHandledInterrupt ;int14 TIM2 capture/compare
 	int NonHandledInterrupt ;int15 TIM3 Update/overflow
@@ -76,7 +78,7 @@ stack_unf: ; stack underflow ; control_stack bottom
 	int NonHandledInterrupt ;int21 UART3 RX full
 .endif 
 	int NonHandledInterrupt ;int22 ADC2 end of conversion
-	int Timer4UpdateHandler	;int23 TIM4 update/overflow ; used as msec ticks counter
+	int NonHandledInterrupt	;int23 TIM4 update/overflow ; used as msec ticks counter
 	int NonHandledInterrupt ;int24 flash writing EOP/WR_PG_DIS
 	int NonHandledInterrupt ;int25  not used
 	int NonHandledInterrupt ;int26  not used
@@ -85,9 +87,10 @@ stack_unf: ; stack underflow ; control_stack bottom
 	int NonHandledInterrupt ;int29  not used
 
 
+KERNEL_VAR_ORG=4
 ;--------------------------------------
     .area DATA (ABS)
-	.org 0 
+	.org KERNEL_VAR_ORG 
 ;--------------------------------------	
 
 ; keep the following 3 variables in this order 
@@ -96,16 +99,13 @@ acc32:: .blkb 1 ; 32 bit accumalator upper-byte
 acc24:: .blkb 1 ; 24 bits accumulator upper-byte 
 acc16:: .blkb 1 ; 16 bits accumulator, acc24 high-byte
 acc8::  .blkb 1 ;  8 bits accumulator, acc24 low-byte  
-fmstr:: .blkb 1 ; frequency in Mhz of Fmaster
-ticks: .blkb 3 ; milliseconds ticks counter (see Timer4UpdateHandler)
+fmstr:: .blkw 1 ; frequency in Mhz of Fmaster
 farptr: .blkb 1 ; 24 bits pointer used by file system, upper-byte
 ptr16::  .blkb 1 ; 16 bits pointer , farptr high-byte 
 ptr8:   .blkb 1 ; 8 bits pointer, farptr low-byte  
 flags:: .blkb 1 ; various boolean flags
-rx1_queue: .ds RX_QUEUE_SIZE ; UART1 receive circular queue 
-rx1_head:  .blkb 1 ; rx1_queue head pointer
-rx1_tail:   .blkb 1 ; rx1_queue tail pointer  
-out: .blkw 1 ; output char routine address 
+
+KERNEL_VAR_SIZE=.-base 
 
 	.area CODE 
 
@@ -123,6 +123,7 @@ NonHandledInterrupt:
 TrapHandler:
 	iret 
 
+.if 0
 ;------------------------------
 ; TIMER 4 is used to maintain 
 ; a milliseconds 'ticks' counter
@@ -140,6 +141,7 @@ Timer4UpdateHandler:
 0$:	_straz ticks 
 	ldw ticks+1,x 
 	iret 
+.endif 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    peripherals initialization
@@ -148,15 +150,17 @@ Timer4UpdateHandler:
 ;----------------------------------------
 ; inialize MCU clock 
 ; input:
-;   A       fmstr Mhz 
-;   XL      CLK_CKDIVR , clock divisor
-;   XH     HSI|HSE   
+;   A      CLK_CKDIVR , clock divisor
+;   X       Fmaster in Khz 
+;   YL     HSI|HSE   
 ; output:
 ;   none 
 ;----------------------------------------
 clock_init:	
-	_straz fmstr
-	ld a,xh ; clock source HSI|HSE 
+; cpu clock divisor 
+	push a   
+	_strxz fmstr
+	ld a,yl ; clock source HSI|HSE 
 	bres CLK_SWCR,#CLK_SWCR_SWIF 
 	cp a,CLK_CMSR 
 	jreq 2$ ; no switching required 
@@ -164,59 +168,9 @@ clock_init:
 	ld CLK_SWR,a
 	btjf CLK_SWCR,#CLK_SWCR_SWIF,. 
 	bset CLK_SWCR,#CLK_SWCR_SWEN
-2$: 	
-; cpu clock divisor 
-	ld a,xl 
-	ld CLK_CKDIVR,a  
+2$: 
+	pop CLK_CKDIVR   	
 	ret
-
-;----------------------------------
-; TIMER2 used as audio tone output 
-; on port D:5. CN9-6
-; channel 1 configured as PWM mode 1 
-;-----------------------------------  
-
-timer2_init:
-	bset CLK_PCKENR1,#CLK_PCKENR1_TIM2 ; enable TIMER2 clock 
- 	mov TIM2_CCMR1,#(6<<TIM2_CCMR_OCM) ; PWM mode 1 
-	mov TIM2_PSCR,#6 ; fmstr/64
-	ret 
-
-;---------------------------------
-; TIM4 is configured to generate an 
-; interrupt every millisecond 
-;----------------------------------
-timer4_init:
-	bset CLK_PCKENR1,#CLK_PCKENR1_TIM4
-	bres TIM4_CR1,#TIM4_CR1_CEN 
-	ld a,fmstr 
-	ldw x,#0xe8 
-	mul x,a
-	pushw x 
-	ldw x,#3 
-	mul x,a 
-	swapw x 
-	addw x,(1,sp) 
-	_drop 2  
-	clr a 
-0$:	 
-	cpw x,#256 
-	jrmi 1$ 
-	inc a 
-	srlw x 
-	jra 0$ 
-1$:
-	ld TIM4_PSCR,a 
-	ld a,xl 
-	ld TIM4_ARR,a
-	mov TIM4_CR1,#((1<<TIM4_CR1_CEN)|(1<<TIM4_CR1_URS))
-	bset TIM4_IER,#TIM4_IER_UIE
-; set int level to 1 
-	ld a,#ITC_SPR_LEVEL1 
-	ldw x,#INT_TIM4_OVF 
-	call set_int_priority
-	ret
-
 
 ;--------------------------
 ; set software interrupt 
@@ -293,26 +247,45 @@ cold_start:
     bset LED_PORT+GPIO_CR1,#LED_BIT
     bset LED_PORT+GPIO_CR2,#LED_BIT
     bset LED_PORT+ GPIO_DDR,#LED_BIT
-	bres LED_PORT+GPIO_ODR,#LED_BIT ; turn on user LED  
+	_led_off 
 ; disable schmitt triggers on Arduino CN4 analog inputs
 	mov ADC_TDRL,0x3f
-.if 0
-; initialize auto wakeup with LSI clock
-	clr AWU_TBR 
-	bset CLK_PCKENR2,#CLK_PCKENR2_AWU ; enable LSI for AWU 
-.endif 
-; select external clock no divisor: 16 Mhz 	
-	ld a,#16 ; Mhz 
-	ldw x,#CLK_SWR_HSE<<8   ; external oscillator 
-    call clock_init 
+; select external clock no divisor	
+	clr a  
+	ldw x,#FMSTR   ; 14,318 Mhz  4 * NTSC chroma frequency   
+    ldw y,#CLK_SWR_HSE 
+	call clock_init	 
 ; UART at 115200 BAUD
 ; used for user interface 
 	call uart_init
-	call timer4_init ; msec ticks timer 
+	call ntsc_init ;  
 	rim ; enable interrupts 
-    ld a,#'O 
+
+; test loop 
+    ld a,#27 
     call uart_putc 
-    ld a,#'K 
+    ld a,#'c 
     call uart_putc 
-    jra . 
+1$: ld a,#CR 
+    call uart_putc 
+	_led_toggle
+    ldw x,#video_buffer 
+2$:
+    ld a,(x)
+    add a,#32 
+    call uart_putc 
+    incw x
+    cpw x,#video_buffer+1000
+	jrmi 2$ 
+_led_off 
+jra . 	
+	3$:
+    ldw x,#video_buffer 
+    ld a,#10
+	ldw y,#-1 
+4$:	decw y 
+	jrne 4$ 
+	dec a 
+	jrne 4$
+	jra 1$ 
 

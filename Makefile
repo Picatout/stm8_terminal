@@ -11,7 +11,7 @@ INC=../inc/
 INCLUDES=$(BOARD_INC) $(INC)ascii.inc $(INC)gen_macros.inc \
          app_macros.inc
 BUILD=build/
-SRC=hardware_init.asm ps2.asm tvout.asm uart.asm 
+SRC=hardware_init.asm ps2.asm tvout.asm uart.asm font.asm  # keep in that order 
 OBJECT=$(BUILD)$(BOARD)/$(NAME).rel
 OBJECTS=$(BUILD)$(BOARD)/$(SRC:.asm=.rel)
 LIST=$(BUILD)$(BOARD)/$(NAME).lst

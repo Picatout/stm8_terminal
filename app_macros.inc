@@ -41,7 +41,6 @@
 
 	MAX_LINENO=0x7fff; BASIC maximum line number 
 
-	RX_QUEUE_SIZE=8 
 
     TIM2_CLK_FREQ=62500
 
@@ -221,8 +220,6 @@ FILE_HEADER_SIZE = 4 ; bytes
     .endm 
 
     .macro _led_toggle 
-        ld a,LED_PORT 
-        xor a,#LED_BIT 
-        ld LED_PORT,a 
+        bcpl LED_PORT,#LED_BIT 
     .endm 
 

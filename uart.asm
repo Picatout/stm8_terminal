@@ -16,6 +16,25 @@
 ;     along with stm8_terminal.  If not, see <http://www.gnu.org/licenses/>.
 ;;
 
+
+UART_VAR_ORG=TV_VAR_ORG+TV_VAR_SIZE 
+;--------------------------------
+	.area DATA
+
+	.org UART_VAR_ORG 
+
+	RX_QUEUE_SIZE=8 
+
+
+rx1_queue: .ds RX_QUEUE_SIZE ; UART1 receive circular queue 
+rx1_head:  .blkb 1 ; rx1_queue head pointer
+rx1_tail:   .blkb 1 ; rx1_queue tail pointer  
+
+UART_VAR_SIZE=.-rx1_queue 
+
+;-------------------------------
+	.area CODE 
+
 ;--------------------------
 ; UART receive character
 ; in a FIFO buffer 
@@ -29,20 +48,10 @@
 UartRxHandler: ; console receive char 
 	btjf UART_SR,#UART_SR_RXNE,5$ 
 	ld a,UART_DR 
-.if 0
-	cp a,#CTRL_C 
-	jrne 2$
-	jp user_interrupted
-2$:
 	cp a,#CAN ; CTRL_X 
-	jrne 3$
+	jrne 1$
 	_swreset 	
-3$:	cp a,#CTRL_Z 
-	jrne 4$
-	call clear_autorun
-	_swreset 
-.endif 
-4$:
+1$:
 	push a 
 	ld a,#rx1_queue 
 	add a,rx1_tail 
@@ -55,7 +64,6 @@ UartRxHandler: ; console receive char
 	and a,#RX_QUEUE_SIZE-1
 	ld rx1_tail,a 
 5$:	iret 
-
 
 ;---------------------------------------------
 ; initialize UART, 115200 8N1
@@ -71,51 +79,12 @@ BAUD_RATE=115200
 	VSIZE=N2+2
 uart_init:
 	_vars VSIZE 
-	bset UART_PORT_DDR,#UART_TX_PIN 
-    bset UART_PORT_CR1,#UART_TX_PIN 
-    bset UART_PORT_CR2,#UART_TX_PIN 
 ; enable UART clock
 	bset CLK_PCKENR1,#UART_PCKEN 	
 	bres UART,#UART_CR1_PIEN
 ; baud rate 115200
-.if 0
-; BRR value = Fmaster/115200 
-	clrw x 
-	_ldaz fmstr 
-	rlwa x 
-	_i24_store N1 
-	ldw x,#10000
-	_i24_store N2 
-	call mul24
-	_i24_store N1   
-	clr a 
-	ldw x,#BAUD_RATE/100
-	_i24_store N2
-	call div24 ; A:X quotient, N2: remainder 
-	_i24_store N1 
-	_i24_fetch N2 
-	cpw x,#BAUD_RATE/200
-	jrmi 1$ 
-	inc (N1+2,sp)
-	jrne 1$ 
-	inc (N1+1,sp) 
-1$:  _i24_fetch N1 
-; // brr value in X
-	ld a,#16 
-	div x,a 
-	push a  ; least nibble of BRR1 
-	rlwa x 
-	swap a  ; high nibble of BRR1 
-	or a,(1,sp)
-	_drop 1 
-	ld UART_BRR2,a 
-	ld a,xh 
-	ld UART_BRR1,a 
-.else 
-	mov UART_BRR2,#0xb
-	mov UART_BRR1,#0x8 
-.endif 
-3$:
+	mov UART_BRR2,#0xc
+	mov UART_BRR1,#0x7 
     clr UART_DR
 	mov UART_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN)|(1<<UART_CR2_RIEN));
 	bset UART_CR2,#UART_CR2_SBK
