@@ -36,14 +36,13 @@ VPULSE=387 ; pulse width during vertical sync.
 HPULSE=66 ; horizontal line sync pulse width. 
 
 ; ntsc synchro phases 
-PH_EVEN_START=0 ; even field start, rcr=0
-PH_PRE_EQU=1 ; pre vsync equalization pulses 
+PH_PRE_EQU=0 ; pre vsync equalization pulses 
 PH_VSYNC=1    ; vertical sync pulses 
-PH_POST_EQU=3 ; post vertical sync equalization pulse 
-PH_PRE_VID=4  ; pre video lines 
-PH_VIDEO=5    ; video lines 
-PH_POST_VID=6 ; post video lines 
-PH_ODD_END=7 ; cut next line to half 
+PH_POST_EQU=2 ; post vertical sync equalization pulse 
+PH_PRE_VID=3  ; pre video lines 
+PH_VIDEO=4    ; video lines 
+PH_POST_VID=5 ; post video lines 
+PH_LAST_LINE=6 ; last field line 
 
 ;ntsc flags 
 F_EVEN=0 ; odd/even field flag 
@@ -89,7 +88,7 @@ ntsc_init:
     mov TIM1_ARRL,#HALF_LINE&0XFF
     mov TIM1_CCR1H,#HPULSE>>8 
     mov TIM1_CCR1L,#HPULSE&0XFF
-    clr TIM1_RCR  
+    mov TIM1_RCR,#5  
     bset TIM1_CR1,#TIM1_CR1_CEN
     bset TIM1_EGR,#TIM1_EGR_UG      
 ;--------------------
@@ -123,12 +122,6 @@ ntsc_init:
 ntsc_sync_interrupt:
     clr TIM1_SR1 
     _ldaz ntsc_phase 
-    cp a,#PH_EVEN_START 
-    jrne 0$
-    mov TIM1_CCR1H,#EPULSE>>8 
-    mov TIM1_CCR1L,#EPULSE&0xff 
-    mov TM1_RCR,#5 
-0$:
     cp a,#PH_PRE_EQU 
     jrne 1$ 
 ; set vsync pulse     
@@ -146,10 +139,6 @@ ntsc_sync_interrupt:
     btjf ntsc_flags,#F_EVEN,6$
     mov TIM1_RCR,#4 
     jra 6$
-12$: 
-    cp a,#PH_EVEN_LAST_EQU
-    jrne 2$ 
-
 2$:
     cp a,#PH_POST_EQU
     jrne 3$ 
@@ -172,21 +161,27 @@ ntsc_sync_interrupt:
     bset TIM1_IER,#TIM1_IER_CC1IE
 ; set repetition
     mov TIM1_RCR,#25
-    btjf ntsc_flags,#F_EVEN,6$
-    inc TIM1_RCR 
     jra 6$
 5$:
+    cp a,#PH_POST_VID 
+    jrne 54$
 ;reset video interrupt 
     bres TIM1_IER,#TIM1_IER_CC1IE 
 ; set pwm for pre equalization 
+    clr TIM1_RCR 
+    btjt ntsc_flags,#F_EVEN,6$ 
+    mov TIM1_ARRH,#HALF_LINE>>8 
+    mov TIM1_ARRL,#HALF_LINE&0XFF 
+    jra 6$ 
+54$: 
     mov TIM1_ARRH,#HALF_LINE>>8 
     mov TIM1_ARRL,#HALF_LINE&0XFF 
     mov TIM1_CCR1H,#EPULSE>>8
     mov TIM1_CCR1L,#EPULSE&0XFF 
-    mov TIM1_RCR,#5  
+    mov TIM1_RCR,#5 
 6$:
     inc a 
-    cp a,#PH_POST_VID+1 
+    cp a,#PH_LAST_LINE+1 
     jrmi 7$ 
     clr a 
     bcpl ntsc_flags,#F_EVEN 
