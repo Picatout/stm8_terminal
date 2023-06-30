@@ -266,6 +266,11 @@ cold_start:
     call uart_putc 
     ld a,#'c 
     call uart_putc 
+	ld a,#'O 
+	call uart_putc 
+	ld a,#'K 
+	call uart_putc
+jra . 	
 1$: ld a,#CR 
     call uart_putc 
 	_led_toggle

@@ -126,7 +126,9 @@
     ; for debugging help 
     ; display a character 
     .macro _cp ch 
+    push a 
     ld a,#ch 
     call uart_putc 
+    pop a 
     .endm 
     

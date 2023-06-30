@@ -203,7 +203,7 @@ FILE_HEADER_SIZE = 4 ; bytes
     .macro _qsign 
 	    pushw x 
 	    ldw x,(x)
-	    cpw x,SIGNATURE ; "TB" 
+	    cpw x,SIGNATURE ; "PB" 
 	    popw x 
 	.endm 
 

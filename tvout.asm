@@ -42,14 +42,16 @@ PH_POST_EQU=2 ; post vertical sync equalization pulse
 PH_PRE_VID=3  ; pre video lines 
 PH_VIDEO=4    ; video lines 
 PH_POST_VID=5 ; post video lines 
-PH_LAST_LINE=6 ; last field line 
+
+FIRST_VIDEO_LINE=50 
+VIDEO_LINES=200 
 
 ;ntsc flags 
 F_EVEN=0 ; odd/even field flag 
 
 ntsc_flags: .blkb 1 
 ntsc_phase: .blkb 1 ; 
-video_line: .blkb 1 ; video lines {0..199} 
+video_line: .blkw 1 ; video lines {0..262} 
 
 TV_VAR_SIZE=.-ntsc_flags 
 
@@ -80,15 +82,15 @@ ntsc_init:
 ; initialize timer1 for pwm 
     mov TIM1_IER,#1 ; UIE set 
     bset TIM1_CR1,#TIM1_CR1_ARPE ; auto preload enabled 
-    mov TIM1_CCMR1,#(7<<TIM1_CCMR1_OCMODE)|(1<<TIM1_CCMR1_OC1PE)
+    mov TIM1_CCMR1,#(7<<TIM1_CCMR1_OCMODE) |(1<<TIM1_CCMR1_OC1PE)
     bset TIM1_CCER1,#0
     bset TIM1_BKR,#7
-; begin with PH_PRE_EQU 
-    mov TIM1_ARRH,#HALF_LINE>>8 
-    mov TIM1_ARRL,#HALF_LINE&0XFF
+; begin with PH_PRE_EQU odd field 
+    _clrz ntsc_phase 
+    mov TIM1_ARRH,#HLINE>>8 
+    mov TIM1_ARRL,#HLINE&0XFF
     mov TIM1_CCR1H,#HPULSE>>8 
     mov TIM1_CCR1L,#HPULSE&0XFF
-    mov TIM1_RCR,#5  
     bset TIM1_CR1,#TIM1_CR1_CEN
     bset TIM1_EGR,#TIM1_EGR_UG      
 ;--------------------
@@ -121,71 +123,97 @@ ntsc_init:
 ;-------------------------------
 ntsc_sync_interrupt:
     clr TIM1_SR1 
+    _ldxz video_line 
+    incw x 
+    _strxz video_line 
     _ldaz ntsc_phase 
     cp a,#PH_PRE_EQU 
+    jrne test_vsync 
+; pre equalization pulses
+    cpw x,#1 
     jrne 1$ 
-; set vsync pulse     
-    _clrz video_line  
-    mov TIM1_CCR1H,#VPULSE>>8 
-    mov TIM1_CCR1L,#VPULSE&0XFF 
-    mov TIM1_RCR,#5
-    jra 6$
-1$:
-    cp a,#PH_VSYNC 
-    jrne 2$ 
-; set post sync pulse     
+    mov TIM1_ARRH,#HALF_LINE>>8 
+    mov TIM1_ARRL,#HALF_LINE&0xff
     mov TIM1_CCR1H,#EPULSE>>8 
-    mov TIM1_CCR1L,#EPULSE&0XFF
-    btjf ntsc_flags,#F_EVEN,6$
-    mov TIM1_RCR,#4 
-    jra 6$
-2$:
-    cp a,#PH_POST_EQU
-    jrne 3$ 
-; set pre-video pulses 
-    mov TIM1_ARRH,#HLINE>>8 
-    mov TIM1_ARRL,#HLINE&0XFF 
-    mov TIM1_CCR1H,#HPULSE>>8 
-    mov TIM1_CCR1L,#HPULSE&0XFF
-    mov TIM1_RCR,#26
-    jra 6$ 
-3$: 
-    cp a,#PH_PRE_VID 
-    jrne 4$ 
-    mov TIM1_RCR,#199
-    jra 6$ 
-4$:
-    cp a,#PH_VIDEO 
-    jrne 5$ 
-; enable video interrupt 
-    bset TIM1_IER,#TIM1_IER_CC1IE
-; set repetition
-    mov TIM1_RCR,#25
-    jra 6$
-5$:
-    cp a,#PH_POST_VID 
-    jrne 54$
-;reset video interrupt 
-    bres TIM1_IER,#TIM1_IER_CC1IE 
-; set pwm for pre equalization 
-    clr TIM1_RCR 
-    btjt ntsc_flags,#F_EVEN,6$ 
-    mov TIM1_ARRH,#HALF_LINE>>8 
-    mov TIM1_ARRL,#HALF_LINE&0XFF 
-    jra 6$ 
-54$: 
-    mov TIM1_ARRH,#HALF_LINE>>8 
-    mov TIM1_ARRL,#HALF_LINE&0XFF 
-    mov TIM1_CCR1H,#EPULSE>>8
-    mov TIM1_CCR1L,#EPULSE&0XFF 
-    mov TIM1_RCR,#5 
-6$:
+    mov TIM1_CCR1L,#EPULSE&0xff 
+    jra 2$  
+1$: cpw x,#6
+    jrne 2$
     inc a 
-    cp a,#PH_LAST_LINE+1 
-    jrmi 7$ 
-    clr a 
-    bcpl ntsc_flags,#F_EVEN 
-7$:
+2$:
+    jp sync_exit       
+test_vsync:
+    cp a,#PH_VSYNC 
+    jrne test_post_equ
+    cpw x,#7 
+    jrne 1$ 
+    mov TIM1_CCR1H,#VPULSE>>8 
+    mov TIM1_CCR1L,#VPULSE&0xff 
+    jra 2$ 
+1$: cpw x,#12 
+    jrne 2$ 
+    inc a 
+2$: 
+    jp sync_exit     
+test_post_equ:
+    cp a,#PH_POST_EQU 
+    jrne test_pre_video 
+    cpw x,#13 
+    jrne 1$ 
+    mov TIM1_CCR1H,#EPULSE>>8 
+    mov TIM1_CCR1L,#EPULSE&0xff 
+    jra 4$
+1$:    
+    cpw x,#18 
+    jrne 3$ 
+    btjt ntsc_flags,#F_EVEN,4$
+    mov TIM1_ARRH,#HLINE>>8 
+    mov TIM1_ARRL,#HLINE&0xff
+    jra 4$ 
+3$: 
+    cpw x,#19 
+    jrne 4$
+    mov TIM1_ARRH,#HLINE>>8 
+    mov TIM1_ARRL,#HLINE&0xff
+    mov TIM1_CCR1H,#HPULSE>>8 
+    mov TIM1_CCR1L,#HPULSE&0xff  
+    inc a 
+    ldw x,#9
+4$: 
+    jra sync_exit 
+test_pre_video:
+    cp a,#PH_PRE_VID 
+    jrne test_video 
+    cpw x,#FIRST_VIDEO_LINE-1 
+    jrne sync_exit 
+    inc a
+    jra sync_exit  
+test_video: 
+    cp a,#PH_VIDEO
+    jrne post_video 
+    cpw x,#FIRST_VIDEO_LINE
+    jrne 1$ 
+    bset TIM1_IER,#TIM1_IER_CC1IE
+    bres TIM1_IER,#TIM1_IER_UIE
+    inc a 
+1$:  
+    jra sync_exit     
+post_video: 
+;    cpw x,#262
+;    jreq 1$  
+    cpw x,#262
+    jrmi 2$
+    btjt ntsc_flags,#F_EVEN,1$  
+    mov TIM1_ARRH,#HALF_LINE>>8 
+    mov TIM1_ARRL,#HALF_LINE & 0xff
+;    jra sync_exit  
+1$: clr a 
+    clrw x
+    _strxz video_line 
+    bcpl ntsc_flags,#F_EVEN
+    jra sync_exit  
+2$: 
+sync_exit:
     _straz ntsc_phase 
     iret 
 
@@ -199,7 +227,7 @@ ntsc_sync_interrupt:
 ntsc_video_interrupt:
     _vars VSIZE
     clr (FONT_LINE,sp) 
-    ld a,#CHAR_PER_LINE  
+    ld a,#36; CHAR_PER_LINE  
     ld (CH_PER_LINE,sp),a  
     clr TIM1_SR1    
 ; line delay 
@@ -209,9 +237,8 @@ ntsc_video_interrupt:
 ; compute postion in buffer 
 ; X=video_line/8*40+video_buffer  
 ; FONT_LINE=video_line%8+font_6x8     
-    _ldaz video_line 
-    clrw x 
-    ld xl,a 
+    _ldxz video_line 
+    subw x,#FIRST_VIDEO_LINE
     ld a,#8 
     div x,a
     ld (FONT_LINE+1,sp),a    
@@ -230,15 +257,23 @@ ntsc_video_interrupt:
     mul y,a ; 4 cy 
 ; add FONT_LINE  
     addw y,(FONT_LINE,sp) ; 2 cy 
-    ld a,(y)  ; 1 cy 
-;    btjf SPI_SR,#SPI_SR_TXE,. ; 2 cy  
+;    ld a,(y)  ; 1 cy 
+ld a,#0xAA 
+    btjf SPI_SR,#SPI_SR_TXE,. ; 2 cy  
     ld SPI_DR,a  ; 1 cy 
     incw x  ; 1 cy 
     dec (CH_PER_LINE,sp) ; 1 cy 
     jrne 1$  ; 2 cy 
     btjt SPI_SR,#SPI_SR_BSY,. 
     clr SPI_DR  
-    _incz video_line 
+    _ldxz video_line 
+    incw x 
+    _strxz video_line 
+    cpw x,#FIRST_VIDEO_LINE+VIDEO_LINES 
+    jrmi 2$ 
+    bres TIM1_IER,#TIM1_IER_CC1IE
+    bset TIM1_IER,#TIM1_IER_UIE
+2$:
     _drop VSIZE 
     iret 
 
