@@ -69,8 +69,8 @@ uart_init:
 	bset CLK_PCKENR1,#UART_PCKEN 	
 	bres UART,#UART_CR1_PIEN
 ; baud rate 115200
-	mov UART_BRR2,#0xb
-	mov UART_BRR1,#0x8 
+	mov UART_BRR2,#0xe
+	mov UART_BRR1,#0xa 
     clr UART_DR
 	mov UART_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN)|(1<<UART_CR2_RIEN));
 	bset UART_CR2,#UART_CR2_SBK

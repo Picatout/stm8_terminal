@@ -17,7 +17,7 @@
 ;;
 
 
-; values based on 16 Mhz crystal
+; values based on 20 Mhz crystal
 
 CHAR_PER_LINE=40 
 LINE_PER_SCREEN=25 
@@ -26,9 +26,9 @@ VISIBLE_SCAN_LINES=200
 FR_HORZ=15734
 HLINE=(FMSTR*1000/FR_HORZ-1); horizontal line duration 
 HALF_LINE=HLINE/2 ; half-line during sync. 
-EPULSE=36 ; pulse width during pre and post equalization
-VPULSE=433 ; pulse width during vertical sync. 
-HPULSE=75 ; horizontal line sync pulse width. 
+EPULSE=47 ; pulse width during pre and post equalization
+VPULSE=546 ; pulse width during vertical sync. 
+HPULSE=94 ; 4.7µSec horizontal line sync pulse width. 
 
 ; ntsc synchro phases 
 PH_VSYNC=0 
@@ -65,7 +65,7 @@ ntsc_init:
 ;	mov SPI_CR2,#(1<<SPI_CR2_SSM)|(1<<SPI_CR2_SSI)
     clr SPI_SR 
     clr SPI_DR 
-    mov SPI_CR1,#(1<<SPI_CR1_SPE)|(1<<SPI_CR1_MSTR)|(1<<SPI_CR1_LSBFIRST)
+    mov SPI_CR1,#(1<<SPI_CR1_SPE)|(1<<SPI_CR1_MSTR);|(1<<SPI_CR1_LSBFIRST)
     mov SPI_CR2,#(1<<SPI_CR2_BDM)|(1<<SPI_CR2_BDOE)
 .endif 
 ; initialize timer1 for pwm 
@@ -161,7 +161,7 @@ test_pre_video:
     bset TIM1_IER,#TIM1_IER_CC1IE
     jra sync_exit
 post_video:
-    cpw x,#271 
+    cpw x,#271
     jrne 2$ 
     btjf ntsc_flags,#F_EVEN,#3$  
     jra sync_exit  
@@ -194,8 +194,11 @@ ntsc_video_interrupt:
     ld (CH_PER_LINE,sp),a  
     clr TIM1_SR1    
 ; line delay 
-0$: ldw x,TIM1_CNTRH  
-    cpw x,#HPULSE+34
+0$: ld a, TIM1_CNTRH 
+    ld xh,a 
+    ld a,TIM1_CNTRL 
+    ld xl,a 
+    cpw x,#2*HPULSE
     jrmi 0$
 ; compute postion in buffer 
 ; X=scan_line/8*40+video_buffer  
@@ -212,8 +215,8 @@ ntsc_video_interrupt:
     addw y,(FONT_LINE,sp)
     ldw (FONT_LINE,sp),y 
 1$:
-;    ld a,(x) ; 1 cy 
-ld a,#'A-32 
+    ld a,(x) ; 1 cy 
+;ld a,#'A-32 
 ; character offset in table 8*char    
     clrw y   ; 1 cy 
     ld yl,a  ; 1 cy 
@@ -227,8 +230,9 @@ ld a,#'A-32
     incw x  ; 1 cy 
     dec (CH_PER_LINE,sp) ; 1 cy 
     jrne 1$  ; 2 cy 
-;    btjt SPI_SR,#SPI_SR_BSY,. 
-    clr SPI_DR  
+    btjf SPI_SR,#SPI_SR_TXE,. 
+    clr a 
+    ld SPI_DR,a   
     _ldxz scan_line 
     incw x 
     _strxz scan_line 
