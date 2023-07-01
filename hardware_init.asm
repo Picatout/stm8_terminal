@@ -105,7 +105,25 @@ ptr16::  .blkb 1 ; 16 bits pointer , farptr high-byte
 ptr8:   .blkb 1 ; 8 bits pointer, farptr low-byte  
 flags:: .blkb 1 ; various boolean flags
 
-KERNEL_VAR_SIZE=.-base 
+; keyboard variables 
+KBD_QUEUE_SIZE=8
+
+kbd_rx_byte: .blkb 1 ; keyboard receive byte 
+kbd_rx_count: .blkb 1 ; keyboard receive bits counter 
+kbd_queue: .blkb KBD_QUEUE_SIZE 
+kbd_queue_head: .blkb 1 
+kbd_queue_tail: .blkb 1 
+
+; tvout variables 
+ntsc_flags: .blkb 1 
+ntsc_phase: .blkb 1 ; 
+scan_line: .blkw 1 ; video lines {0..262} 
+
+; uart variable 
+RX_QUEUE_SIZE=8 
+rx1_queue: .ds RX_QUEUE_SIZE ; UART1 receive circular queue 
+rx1_head:  .blkb 1 ; rx1_queue head pointer
+rx1_tail:   .blkb 1 ; rx1_queue tail pointer  
 
 	.area CODE 
 

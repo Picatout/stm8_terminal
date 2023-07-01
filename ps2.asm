@@ -17,23 +17,6 @@
 ;;
 
 
-PS2_VAR_ORG=KERNEL_VAR_ORG+KERNEL_VAR_SIZE 
-;----------------------------------
-    .area DATA 
-
-    .org PS2_VAR_ORG 
-;----------------------------------    
-
-KBD_QUEUE_SIZE=8
-
-kbd_rx_byte: .blkb 1 ; keyboard receive byte 
-kbd_rx_count: .blkb 1 ; keyboard receive bits counter 
-kbd_queue: .blkb KBD_QUEUE_SIZE 
-kbd_queue_head: .blkb 1 
-kbd_queue_tail: .blkb 1 
-
-PS2_VAR_SIZE=.-kbd_rx_byte  
-
 ;--------------------------------
     .area CODE 
 

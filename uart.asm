@@ -17,20 +17,6 @@
 ;;
 
 
-UART_VAR_ORG=TV_VAR_ORG+TV_VAR_SIZE 
-;--------------------------------
-	.area DATA
-
-	.org UART_VAR_ORG 
-
-	RX_QUEUE_SIZE=8 
-
-
-rx1_queue: .ds RX_QUEUE_SIZE ; UART1 receive circular queue 
-rx1_head:  .blkb 1 ; rx1_queue head pointer
-rx1_tail:   .blkb 1 ; rx1_queue tail pointer  
-
-UART_VAR_SIZE=.-rx1_queue 
 
 ;-------------------------------
 	.area CODE 
@@ -83,8 +69,8 @@ uart_init:
 	bset CLK_PCKENR1,#UART_PCKEN 	
 	bres UART,#UART_CR1_PIEN
 ; baud rate 115200
-	mov UART_BRR2,#0xc
-	mov UART_BRR1,#0x7 
+	mov UART_BRR2,#0xb
+	mov UART_BRR1,#0x8 
     clr UART_DR
 	mov UART_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN)|(1<<UART_CR2_RIEN));
 	bset UART_CR2,#UART_CR2_SBK
