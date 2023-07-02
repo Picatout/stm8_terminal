@@ -93,6 +93,27 @@ uart_putc::
 	ld UART_DR,a 
 	ret 
 
+;-------------------------
+; delete character left 
+;-------------------------
+uart_delback:
+	ld a,#BS 
+	call uart_putc  
+	ld a,#SPACE 
+	call uart_putc 
+	ld a,#BS 
+	call uart_putc 
+	ret 
+
+uart_cls:
+	push a 
+	ld a,#ESC 
+	call uart_putc 
+	ld a,#'c 
+	call uart_putc 
+	pop a 
+	ret 
+
 
 ;---------------------------------
 ; Query for character in rx1_queue
@@ -106,4 +127,67 @@ qgetc::
 uart_qgetc::
 	_ldaz rx1_head 
 	sub a,rx1_tail 
+	ret 
+
+;---------------------------------
+; wait character from UART 
+; input:
+;   none
+; output:
+;   A 			char  
+;--------------------------------	
+getc:: ;console input
+uart_getc::
+	call uart_qgetc
+	jreq uart_getc 
+	pushw x 
+;; rx1_queue must be in page 0 	
+	ld a,#rx1_queue
+	add a,rx1_head 
+	clrw x  
+	ld xl,a 
+	ld a,(x)
+	push a
+	_ldaz rx1_head 
+	inc a 
+	and a,#RX_QUEUE_SIZE-1
+	_straz rx1_head 
+	pop a  
+	popw x
+	ret 
+
+
+;--------------------------
+; manange control character 
+; before calling uart_putc 
+; input:
+;    A    character 
+;---------------------------
+uart_print_char:
+	cp a,#BS 
+	jrne 1$
+	call uart_delback 
+	jra 9$ 
+1$:
+	call uart_putc
+9$:
+	ret 
+
+
+;------------------------------
+;  send string to uart 
+; input:
+;    X    *string 
+; output:
+;    X    *after string 
+;------------------------------
+uart_puts:
+	push a 
+1$: ld a,(x)
+	jreq 9$ 
+	call uart_print_char  
+	incw x 
+	jra 1$ 
+9$: incw x 
+	pop a 
 	ret 

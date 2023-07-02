@@ -46,7 +46,7 @@ stack_unf: ; stack underflow ; control_stack bottom
 ;;--------------------------------------
 
     int cold_start			; RESET vector 
-	int TrapHandler         ; trap instruction 
+	int NonHandledInterrupt ; trap instruction 
 	int NonHandledInterrupt ;int0 TLI   external top level interrupt
 	int NonHandledInterrupt ;int1 AWU   auto wake up from halt
 	int NonHandledInterrupt ;int2 CLK   clock controller
@@ -78,7 +78,7 @@ stack_unf: ; stack underflow ; control_stack bottom
 	int NonHandledInterrupt ;int21 UART3 RX full
 .endif 
 	int NonHandledInterrupt ;int22 ADC2 end of conversion
-	int NonHandledInterrupt	;int23 TIM4 update/overflow ; used as msec ticks counter
+	int timer4_update_handler	;int23 TIM4 update/overflow ; use to blink tv cursor 
 	int NonHandledInterrupt ;int24 flash writing EOP/WR_PG_DIS
 	int NonHandledInterrupt ;int25  not used
 	int NonHandledInterrupt ;int26  not used
@@ -119,6 +119,11 @@ ntsc_flags: .blkb 1
 ntsc_phase: .blkb 1 ; 
 scan_line: .blkw 1 ; video lines {0..262} 
 
+; tv terminal variables 
+cursor_x: .blkb 1 
+cursor_y: .blkb 1 
+cursor_delay: .blkw 1 ;  333 msec  delay 
+
 ; uart variable 
 RX_QUEUE_SIZE=8 
 rx1_queue: .ds RX_QUEUE_SIZE ; UART1 receive circular queue 
@@ -133,33 +138,6 @@ rx1_tail:   .blkb 1 ; rx1_queue tail pointer
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 NonHandledInterrupt:
 	_swreset ; see "inc/gen_macros.inc"
-
-
-;------------------------------------
-; sofware interrupt handler  
-;------------------------------------
-TrapHandler:
-	iret 
-
-.if 0
-;------------------------------
-; TIMER 4 is used to maintain 
-; a milliseconds 'ticks' counter
-;--------------------------------
-Timer4UpdateHandler:
-	clr TIM4_SR 
-	_ldaz ticks 
-	_ldxz ticks+1
-	addw x,#1 
-	adc a,#0 
-	jrpl 0$
-; reset to 0 when negative
-	clr a 
-	clrw x 
-0$:	_straz ticks 
-	ldw ticks+1,x 
-	iret 
-.endif 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    peripherals initialization
@@ -190,6 +168,7 @@ clock_init:
 	pop CLK_CKDIVR   	
 	ret
 
+	
 ;--------------------------
 ; set software interrupt 
 ; priority 
@@ -276,39 +255,28 @@ cold_start:
 ; UART at 115200 BAUD
 ; used for user interface 
 	call uart_init
-	call ntsc_init ;  
+	call ntsc_init ;
+	call timer4_init   
 	rim ; enable interrupts 
 
-; test loop 
-    ld a,#27 
-    call uart_putc 
-    ld a,#'c 
-    call uart_putc 
-	ld a,#'O 
-	call uart_putc 
-	ld a,#'K 
-	call uart_putc
-jra . 	
-1$: ld a,#CR 
-    call uart_putc 
-	_led_toggle
-    ldw x,#video_buffer 
-2$:
-    ld a,(x)
-    add a,#32 
-    call uart_putc 
-    incw x
-    cpw x,#video_buffer+1000
-	jrmi 2$ 
-_led_off 
-jra . 	
-	3$:
-    ldw x,#video_buffer 
-    ld a,#10
-	ldw y,#-1 
-4$:	decw y 
-	jrne 4$ 
-	dec a 
-	jrne 4$
-	jra 1$ 
-
+.if 1
+;---------------
+;tv test loop 
+;---------------
+;	call uart_cls 
+;	ldw x,#uart_test 
+;	call uart_puts 
+	call tv_cls
+	ldw x,#tv_test_msg 
+	call tv_puts 
+	call tv_new_line 
+1$:	
+	call uart_getc 
+;	call uart_print_char
+	call tv_putc 
+	jra 1$
+tv_test_msg: .asciz "TV terminal test\n" 
+uart_test: .asciz "UART echo test\n" 
+.else 
+jra . 
+.endif 

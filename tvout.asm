@@ -19,8 +19,8 @@
 
 ; values based on 20 Mhz crystal
 
-CHAR_PER_LINE=40 
-LINE_PER_SCREEN=25 
+CHAR_PER_LINE==40 
+LINE_PER_SCREEN==25 
 VISIBLE_SCAN_LINES=200 
 
 FR_HORZ=15734
@@ -41,6 +41,8 @@ VIDEO_LINES=200
 
 ;ntsc flags 
 F_EVEN=0 ; odd/even field flag 
+F_CURSOR=1 ; tv cursor active 
+F_CUR_VISI=2 ; tv cursor state, 1 visible 
 
 ;-------------------------------
     .area CODE 
@@ -65,8 +67,7 @@ ntsc_init:
 ;	mov SPI_CR2,#(1<<SPI_CR2_SSM)|(1<<SPI_CR2_SSI)
     clr SPI_SR 
     clr SPI_DR 
-    mov SPI_CR1,#(1<<SPI_CR1_SPE)|(1<<SPI_CR1_MSTR);|(1<<SPI_CR1_LSBFIRST)
-    mov SPI_CR2,#(1<<SPI_CR2_BDM)|(1<<SPI_CR2_BDOE)
+    mov SPI_CR1,#(1<<SPI_CR1_SPE)|(1<<SPI_CR1_MSTR) ; |(1<<SPI_CR1_LSBFIRST)
 .endif 
 ; initialize timer1 for pwm 
     mov TIM1_IER,#1 ; UIE set 
@@ -74,6 +75,12 @@ ntsc_init:
     mov TIM1_CCMR1,#(7<<TIM1_CCMR1_OCMODE)  |(1<<TIM1_CCMR1_OC1PE)
     bset TIM1_CCER1,#0
     bset TIM1_BKR,#7
+; use channel to for video stream trigger 
+; delay 2*HPULSE 9.4µSec 
+    mov TIM1_CCMR2,#(6<<TIM1_CCMR2_OCMODE) 
+    mov TIM1_CCR2H,#(3*HPULSE)>>8 
+    mov TIM1_CCR2L,#(3*HPULSE)&0xff
+    bset TIM1_CCER2,#0      
 ; begin with PH_PRE_EQU odd field 
     _clrz ntsc_phase 
     mov TIM1_ARRH,#HLINE>>8 
@@ -82,25 +89,25 @@ ntsc_init:
     mov TIM1_CCR1L,#HPULSE&0XFF
     bset TIM1_CR1,#TIM1_CR1_CEN
     bset TIM1_EGR,#TIM1_EGR_UG      
+    call enable_cursor 
+
+.if 1
 ;--------------------
 ; test code 
 ; fill video_buffer 
 ;-------------------
-    ldw x,#1000
-    pushw X
+    ldw y,#1000
     ldw x,#video_buffer 
-0$: clr a 
+0$: ld a,#'9
 1$: ld (x),a 
-    inc a 
-    cp a,#100 
-    jrmi 2$ 
-    clr a 
+    dec a 
+    cp a,#'0 
+    jrpl 2$ 
+    ld a,#'9 
 2$: incw x 
-    dec (2,sp)
+    decw y 
     jrne 1$ 
-    dec (1,sp)
-    jrne 1$
-    popw x 
+.endif
     ret 
 
 
@@ -158,7 +165,7 @@ test_pre_video:
     jrne sync_exit 
     inc a 
     bres TIM1_IER,#TIM1_IER_UIE 
-    bset TIM1_IER,#TIM1_IER_CC1IE
+    bset TIM1_IER,#TIM1_IER_CC2IE
     jra sync_exit
 post_video:
     cpw x,#271
@@ -189,17 +196,11 @@ sync_exit:
     VSIZE=CH_PER_LINE  
 ntsc_video_interrupt:
     _vars VSIZE
+    bset SPI_CR1,#SPI_CR1_SPE 
     clr (FONT_LINE,sp) 
     ld a,#CHAR_PER_LINE  
     ld (CH_PER_LINE,sp),a  
     clr TIM1_SR1    
-; line delay 
-0$: ld a, TIM1_CNTRH 
-    ld xh,a 
-    ld a,TIM1_CNTRL 
-    ld xl,a 
-    cpw x,#2*HPULSE
-    jrmi 0$
 ; compute postion in buffer 
 ; X=scan_line/8*40+video_buffer  
 ; FONT_LINE=scan_line%8+font_6x8     
@@ -216,7 +217,7 @@ ntsc_video_interrupt:
     ldw (FONT_LINE,sp),y 
 1$:
     ld a,(x) ; 1 cy 
-;ld a,#'A-32 
+    sub a,#32 
 ; character offset in table 8*char    
     clrw y   ; 1 cy 
     ld yl,a  ; 1 cy 
@@ -230,18 +231,16 @@ ntsc_video_interrupt:
     incw x  ; 1 cy 
     dec (CH_PER_LINE,sp) ; 1 cy 
     jrne 1$  ; 2 cy 
-    btjf SPI_SR,#SPI_SR_TXE,. 
-    clr a 
-    ld SPI_DR,a   
+    btjf SPI_SR,#SPI_SR_BSY,. 
+    clr SPI_DR 
     _ldxz scan_line 
     incw x 
     _strxz scan_line 
     cpw x,#FIRST_VIDEO_LINE+VIDEO_LINES
     jrmi 2$ 
-    bres TIM1_IER,#TIM1_IER_CC1IE
+    bres TIM1_IER,#TIM1_IER_CC2IE
     bset TIM1_IER,#TIM1_IER_UIE
-2$:
+2$: bres SPI_CR1,#SPI_CR1_SPE
     _drop VSIZE 
     iret 
-
 
