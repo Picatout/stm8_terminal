@@ -18,7 +18,7 @@
 
 
 
-CHAR_PER_LINE==34
+CHAR_PER_LINE==35
 LINE_PER_SCREEN==25 
 VISIBLE_SCAN_LINES=200 
 
@@ -169,12 +169,12 @@ sync_exit:
 ; shift out character bits 
     .macro _shift_out_char  
         .rept 6
-            rlc a 
-            bccm PC_ODR,#6 
-        .endm 
-        nop 
-        bres PC_ODR,#6
-   .endm ; 14cy 
+            rlc a ; 1 CY 
+            bccm PC_ODR,#6 ; 1 cy  
+        .endm ; 12 cy 
+        nop ; 1 cy 
+        bres PC_ODR,#6 ; 1 cy 
+   .endm ; 14 cy 
 
 ; character offset in table 8*char+&font_6x8+row      
     .macro _get_font_row 
@@ -191,8 +191,8 @@ sync_exit:
             ld a,(n,x) ; 1 cy 
             _get_font_row ; 9 cy 
             _shift_out_char ; 14 cy  
-            n=n+1 ;incw x ; 1 cy  
-        .endm 
+            n=n+1
+        .endm ; 
     .endm 
 
     FONT_LINE=1 
