@@ -191,3 +191,52 @@ uart_puts:
 9$: incw x 
 	pop a 
 	ret 
+
+;-------------------------------
+; print integer in hexadicimal
+; input:
+;    X 
+;------------------------------- 
+uart_print_hex:
+	pushw x 
+	push a 
+	ld a,xh 
+	call uart_print_hex_byte 
+	ld a,xl 
+	call uart_print_hex_byte 
+	ld a,#SPACE 
+	call uart_putc 
+	pop a 
+	popw x 
+	ret 
+
+;----------------------
+; print hexadecimal byte 
+; input:
+;    A    byte to print 
+;-----------------------
+uart_print_hex_byte:
+	push a 
+	swap a 
+	call hex_digit 
+	call uart_putc 
+	pop a 
+	call hex_digit 
+	call uart_putc 
+	ret 
+
+;---------------------------
+; convert to hexadecimal digit 
+; input:
+;    A    value to convert 
+; output:
+;    A    hex digit character 
+;-----------------------------
+hex_digit:
+	and a,#15 
+	add a,#'0 
+	cp a,#'9+1 
+	jrmi 9$ 
+	add a,#7 
+9$: ret 
+

@@ -34,10 +34,9 @@ STAKC_SIZE=128
     .area SSEG (ABS)
 ;; working buffers and stack at end of RAM. 	
 ;;-----------------------------------
-    .org RAM_SIZE-STACK_SIZE-(CHAR_PER_LINE*LINE_PER_SCREEN)
-video_buffer: .blkb CHAR_PER_LINE*LINE_PER_SCREEN
-stack_full:: .ds STACK_SIZE   ; control stack 
-stack_unf: ; stack underflow ; control_stack bottom 
+    .org RAM_SIZE-STACK_SIZE
+stack_full:: .ds STACK_SIZE   ; control stack full 
+stack_unf: ; stack underflow ; RAM end +1 -> 0x1800
 
 
 ;;--------------------------------------
@@ -94,13 +93,9 @@ KERNEL_VAR_ORG=4
 ;--------------------------------------	
 
 ; keep the following 3 variables in this order 
-base::  .blkb 1 ; nemeric base used to print integer 
-acc32:: .blkb 1 ; 32 bit accumalator upper-byte 
-acc24:: .blkb 1 ; 24 bits accumulator upper-byte 
 acc16:: .blkb 1 ; 16 bits accumulator, acc24 high-byte
 acc8::  .blkb 1 ;  8 bits accumulator, acc24 low-byte  
 fmstr:: .blkw 1 ; frequency in Mhz of Fmaster
-farptr: .blkb 1 ; 24 bits pointer used by file system, upper-byte
 ptr16::  .blkb 1 ; 16 bits pointer , farptr high-byte 
 ptr8:   .blkb 1 ; 8 bits pointer, farptr low-byte  
 flags:: .blkb 1 ; various boolean flags
@@ -118,6 +113,7 @@ kbd_queue_tail: .blkb 1
 ntsc_flags: .blkb 1 
 ntsc_phase: .blkb 1 ; 
 scan_line: .blkw 1 ; video lines {0..262} 
+font_addr: .blkw 1 ; font table address 
 
 ; tv terminal variables 
 cursor_x: .blkb 1 
@@ -129,6 +125,14 @@ RX_QUEUE_SIZE=8
 rx1_queue: .ds RX_QUEUE_SIZE ; UART1 receive circular queue 
 rx1_head:  .blkb 1 ; rx1_queue head pointer
 rx1_tail:   .blkb 1 ; rx1_queue tail pointer  
+
+; free ram for user font 
+	.org 256 
+user_font:
+
+	.org RAM_SIZE-STACK_SIZE-(2*CHAR_PER_LINE*LINE_PER_SCREEN)
+video_buffer: .blkw CHAR_PER_LINE*LINE_PER_SCREEN
+
 
 	.area CODE 
 
@@ -261,6 +265,7 @@ cold_start:
 	call timer4_init   
 	rim ; enable interrupts 
 
+
 .if 1
 ;---------------
 ;tv test loop 
@@ -271,14 +276,13 @@ cold_start:
 	call tv_cls
 	ldw x,#tv_test_msg 
 	call tv_puts 
-	call tv_new_line 
 1$:	
 	call uart_getc 
-;	call uart_print_char
-	call tv_putc 
+	call uart_print_char
+	call tv_print_char  
 	jra 1$
 tv_test_msg: .asciz "TV terminal test\n" 
 uart_test: .asciz "UART echo test\n" 
 .else 
-jra . 
+jra .
 .endif 

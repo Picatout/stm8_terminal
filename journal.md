@@ -1,3 +1,7 @@
+### 2023-07-03 
+
+* * Travail sur [tvout.asm](tvout.asm), j'ai trouvé une méthode pour permettre d'afficher 40 caractères par ligne. Le tampon vidéo contient l'adresse du caractère dans la table de la police, plutôt que le caractère lui-même. De cette façon cette adresse n'a pas besoin d'être calculé au moment de l'affichage. On sauve ainsi plusieurs cycles machines par caractère. De plus l'espace entre chaque caractère est plus étroit ce qui améliore l'apparence.
+
 ### 2023-07-02
 
 * Travail sur [tvout.asm](tvout.asm), amélioration au prix de la réduction du nombre de caractère par ligne 34 au lieu de 40. 

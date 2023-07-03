@@ -18,7 +18,7 @@
 
 
 
-CHAR_PER_LINE==35
+CHAR_PER_LINE==40
 LINE_PER_SCREEN==25 
 VISIBLE_SCAN_LINES=200 
 
@@ -30,7 +30,7 @@ HALF_LINE=HLINE/2 ; half-line during sync.
 EPULSE=47 ; pulse width during pre and post equalization
 VPULSE=546 ; pulse width during vertical sync. 
 HPULSE=94 ; 4.7µSec horizontal line sync pulse width. 
-LINE_DELAY=(3*HPULSE/2) 
+LINE_DELAY=(160) 
 
 ; ntsc synchro phases 
 PH_VSYNC=0 
@@ -83,7 +83,10 @@ ntsc_init:
     mov TIM1_CCR1L,#HPULSE&0XFF
     bset TIM1_CR1,#TIM1_CR1_CEN
     bset TIM1_EGR,#TIM1_EGR_UG      
-    call enable_cursor 
+    ldw x,#font_6x8
+    _strxz font_addr 
+    call tv_cls 
+    call tv_enable_cursor
     ret 
 
 ;-------------------------------
@@ -176,48 +179,35 @@ sync_exit:
         bres PC_ODR,#6 ; 1 cy 
    .endm ; 14 cy 
 
-; character offset in table 8*char+&font_6x8+row      
-    .macro _get_font_row 
-        ld yl,a  ; 1 cy
-        ld a,#8  ; 1 cy 
-        mul y,a  ; 4 cy 
-        addw y,(FONT_LINE,sp) ; 2 cy 
-        ld a,(y) ; 1 cy 
-    .endm  ; 9 cy 
-
     .macro _shift_out_scan_line
-        n=0  
+        n=0
         .rept CHAR_PER_LINE
-            ld a,(n,x) ; 1 cy 
-            _get_font_row ; 9 cy 
+            ldw y,x 
+            ldw y,(n,y)
+            addw y,(FONT_ROW,sp)
+            ld a,(y)
             _shift_out_char ; 14 cy  
-            n=n+1
+            n=n+2 ;addw x,#2 ; 2 cy 
         .endm ; 
     .endm 
 
-    FONT_LINE=1 
-    CH_PER_LINE=FONT_LINE+2
-    VSIZE=CH_PER_LINE  
+    FONT_ROW=1 ; font_char_row  
+    VSIZE=2   
 ntsc_video_interrupt:
     _vars VSIZE
-    clr (FONT_LINE,sp) 
-    ld a,#CHAR_PER_LINE   
-    ld (CH_PER_LINE,sp),a  
+    clr (FONT_ROW,sp) 
     clr TIM1_SR1    
 ; compute postion in buffer 
-; X=scan_line/8*CHAR_PER_LINE+video_buffer  
-; FONT_LINE=scan_line%8+font_6x8     
+; X=scan_line/16*CHAR_PER_LINE+video_buffer  
+; FONT_ROW=scan_line%8     
     _ldxz scan_line 
     subw x,#FIRST_VIDEO_LINE
     ld a,#8 
     div x,a
-    ld (FONT_LINE+1,sp),a    
-    ld a,#CHAR_PER_LINE  
+    ld (FONT_ROW+1,sp),a    
+    ld a,#2*CHAR_PER_LINE  
     mul x,a  ; video_buffer line  
     addw x,#video_buffer
-    ldw y,#font_6x8
-    addw y,(FONT_LINE,sp)
-    ldw (FONT_LINE,sp),y 
     _shift_out_scan_line 
     _ldxz scan_line 
     incw x 
