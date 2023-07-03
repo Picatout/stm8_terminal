@@ -22,7 +22,7 @@
         KW_TYPE_MASK=0xf0 ; mask to extract keyword type 
 
 
-	STACK_SIZE=140
+	STACK_SIZE=128
 	STACK_EMPTY=RAM_SIZE-1  
     INT_SIZE=3 ; int24 size in bytes
     CELL_SIZE=INT_SIZE 

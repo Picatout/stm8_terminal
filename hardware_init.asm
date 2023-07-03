@@ -34,8 +34,8 @@ STAKC_SIZE=128
     .area SSEG (ABS)
 ;; working buffers and stack at end of RAM. 	
 ;;-----------------------------------
-    .org RAM_SIZE-STACK_SIZE-1000 
-video_buffer: .blkb 40*25
+    .org RAM_SIZE-STACK_SIZE-(CHAR_PER_LINE*LINE_PER_SCREEN)
+video_buffer: .blkb CHAR_PER_LINE*LINE_PER_SCREEN
 stack_full:: .ds STACK_SIZE   ; control stack 
 stack_unf: ; stack underflow ; control_stack bottom 
 
@@ -240,6 +240,8 @@ cold_start:
 	ld PF_CR1,a 
 	ld PG_CR1,a 
 	ld PI_CR1,a
+    bres PD_CR1,#3 ; connected to PC6 
+    bres PE_CR1,#5 ; connected to PD4 
 ; set user LED pin as output 
     bset LED_PORT+GPIO_CR1,#LED_BIT
     bset LED_PORT+GPIO_CR2,#LED_BIT

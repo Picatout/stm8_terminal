@@ -17,11 +17,12 @@
 ;;
 
 
-; values based on 20 Mhz crystal
 
-CHAR_PER_LINE==40 
+CHAR_PER_LINE==34
 LINE_PER_SCREEN==25 
 VISIBLE_SCAN_LINES=200 
+
+; values based on 20 Mhz crystal
 
 FR_HORZ=15734
 HLINE=(FMSTR*1000/FR_HORZ-1); horizontal line duration 
@@ -29,6 +30,7 @@ HALF_LINE=HLINE/2 ; half-line during sync.
 EPULSE=47 ; pulse width during pre and post equalization
 VPULSE=546 ; pulse width during vertical sync. 
 HPULSE=94 ; 4.7µSec horizontal line sync pulse width. 
+LINE_DELAY=(7*HPULSE/4) 
 
 ; ntsc synchro phases 
 PH_VSYNC=0 
@@ -56,19 +58,11 @@ F_CUR_VISI=2 ; tv cursor state, 1 visible
 ntsc_init:
     _clrz ntsc_flags 
     _clrz ntsc_phase 
-.if 0    
-; set PD3 as output 
+; set MOSI pin as output high-speed push-pull 
     bset PC_DDR,#6 
-    bres PC_ODR,#6    
-.else 
-; initialize SPI for video pixel shift out 
-	bset CLK_PCKENR1,#CLK_PCKENR1_SPI ; enable clock signal 
-; ~CS line controlled by sofware 	
-;	mov SPI_CR2,#(1<<SPI_CR2_SSM)|(1<<SPI_CR2_SSI)
-    clr SPI_SR 
-    clr SPI_DR 
-    mov SPI_CR1,#(1<<SPI_CR1_SPE)|(1<<SPI_CR1_MSTR) ; |(1<<SPI_CR1_LSBFIRST)
-.endif 
+    bres PC_ODR,#6
+    bset PC_CR1,#6
+    bset PC_CR2,#6
 ; initialize timer1 for pwm 
     mov TIM1_IER,#1 ; UIE set 
     bset TIM1_CR1,#TIM1_CR1_ARPE ; auto preload enabled 
@@ -76,10 +70,10 @@ ntsc_init:
     bset TIM1_CCER1,#0
     bset TIM1_BKR,#7
 ; use channel to for video stream trigger 
-; delay 2*HPULSE 9.4µSec 
+; set pixel out delay   
     mov TIM1_CCMR2,#(6<<TIM1_CCMR2_OCMODE) 
-    mov TIM1_CCR2H,#(3*HPULSE)>>8 
-    mov TIM1_CCR2L,#(3*HPULSE)&0xff
+    mov TIM1_CCR2H,#LINE_DELAY>>8 
+    mov TIM1_CCR2L,#LINE_DELAY&0xFF
     bset TIM1_CCER2,#0      
 ; begin with PH_PRE_EQU odd field 
     _clrz ntsc_phase 
@@ -90,26 +84,7 @@ ntsc_init:
     bset TIM1_CR1,#TIM1_CR1_CEN
     bset TIM1_EGR,#TIM1_EGR_UG      
     call enable_cursor 
-
-.if 1
-;--------------------
-; test code 
-; fill video_buffer 
-;-------------------
-    ldw y,#1000
-    ldw x,#video_buffer 
-0$: ld a,#'9
-1$: ld (x),a 
-    dec a 
-    cp a,#'0 
-    jrpl 2$ 
-    ld a,#'9 
-2$: incw x 
-    decw y 
-    jrne 1$ 
-.endif
     ret 
-
 
 ;-------------------------------
 ; TIMER1 update interrupt handler 
@@ -191,56 +166,67 @@ sync_exit:
 ;----------------------------------
 ; TIMER1 compare interrupt handler
 ;----------------------------------
+; shift out character bits 
+    .macro _shift_out_char  
+        .rept 6
+            rlc a 
+            bccm PC_ODR,#6 
+        .endm 
+        nop 
+        bres PC_ODR,#6
+   .endm ; 14cy 
+
+; character offset in table 8*char+&font_6x8+row      
+    .macro _get_font_row 
+        ld yl,a  ; 1 cy
+        ld a,#8  ; 1 cy 
+        mul y,a  ; 4 cy 
+        addw y,(FONT_LINE,sp) ; 2 cy 
+        ld a,(y) ; 1 cy 
+    .endm  ; 9 cy 
+
+    .macro _shift_out_scan_line
+        n=0  
+        .rept CHAR_PER_LINE
+            ld a,(n,x) ; 1 cy 
+            _get_font_row ; 9 cy 
+            _shift_out_char ; 14 cy  
+            n=n+1 ;incw x ; 1 cy  
+        .endm 
+    .endm 
+
     FONT_LINE=1 
-    CH_PER_LINE=FONT_LINE+2 
+    CH_PER_LINE=FONT_LINE+2
     VSIZE=CH_PER_LINE  
 ntsc_video_interrupt:
     _vars VSIZE
-    bset SPI_CR1,#SPI_CR1_SPE 
     clr (FONT_LINE,sp) 
-    ld a,#CHAR_PER_LINE  
+    ld a,#CHAR_PER_LINE   
     ld (CH_PER_LINE,sp),a  
     clr TIM1_SR1    
 ; compute postion in buffer 
-; X=scan_line/8*40+video_buffer  
+; X=scan_line/8*CHAR_PER_LINE+video_buffer  
 ; FONT_LINE=scan_line%8+font_6x8     
     _ldxz scan_line 
     subw x,#FIRST_VIDEO_LINE
     ld a,#8 
     div x,a
     ld (FONT_LINE+1,sp),a    
-    ld a,#40 
+    ld a,#CHAR_PER_LINE  
     mul x,a  ; video_buffer line  
     addw x,#video_buffer
     ldw y,#font_6x8
     addw y,(FONT_LINE,sp)
     ldw (FONT_LINE,sp),y 
-1$:
-    ld a,(x) ; 1 cy 
-    sub a,#32 
-; character offset in table 8*char    
-    clrw y   ; 1 cy 
-    ld yl,a  ; 1 cy 
-    ld a,#8  ; 1 cy 
-    mul y,a ; 4 cy 
-; add FONT_LINE  
-    addw y,(FONT_LINE,sp) ; 2 cy 
-    ld a,(y)  ; 1 cy 
-;    btjf SPI_SR,#SPI_SR_TXE,. ; 2 cy  
-    ld SPI_DR,a  ; 1 cy 
-    incw x  ; 1 cy 
-    dec (CH_PER_LINE,sp) ; 1 cy 
-    jrne 1$  ; 2 cy 
-    btjf SPI_SR,#SPI_SR_BSY,. 
-    clr SPI_DR 
+    _shift_out_scan_line 
     _ldxz scan_line 
     incw x 
     _strxz scan_line 
     cpw x,#FIRST_VIDEO_LINE+VIDEO_LINES
-    jrmi 2$ 
+    jrmi 3$ 
     bres TIM1_IER,#TIM1_IER_CC2IE
     bset TIM1_IER,#TIM1_IER_UIE
-2$: bres SPI_CR1,#SPI_CR1_SPE
+3$:  
     _drop VSIZE 
     iret 
 
