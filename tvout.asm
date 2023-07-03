@@ -30,7 +30,7 @@ HALF_LINE=HLINE/2 ; half-line during sync.
 EPULSE=47 ; pulse width during pre and post equalization
 VPULSE=546 ; pulse width during vertical sync. 
 HPULSE=94 ; 4.7µSec horizontal line sync pulse width. 
-LINE_DELAY=(7*HPULSE/4) 
+LINE_DELAY=(3*HPULSE/2) 
 
 ; ntsc synchro phases 
 PH_VSYNC=0 
