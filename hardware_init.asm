@@ -288,14 +288,6 @@ cold_start:
 	_strxz font_addr 
 .endif 
 	rim ; enable interrupts 
-	bset flags,#F_LECHO ; local echo from keyboard to tv 
 	call uart_cls 
-.if 0 
-2$:
-call wait_next_code 
-call uart_print_hex_byte 
-call uart_space 
-jra 2$
-.endif 
 	call tv_cls 
 	jp main ; in tv_term.asm 

@@ -25,8 +25,6 @@
 	STACK_SIZE=128
 	STACK_EMPTY=RAM_SIZE-1  
 	
-    ; boolean flags 
-    F_LECHO=0 ; terminal local echo 
 
 ; version 
     MAJOR=1 

@@ -18,7 +18,7 @@
 
 
 
-CHAR_PER_LINE==41
+CHAR_PER_LINE==40
 LINE_PER_SCREEN==25 
 VISIBLE_SCAN_LINES=200 
 
@@ -45,6 +45,7 @@ VIDEO_LINES=200
 F_EVEN=0 ; odd/even field flag 
 F_CURSOR=1 ; tv cursor active 
 F_CUR_VISI=2 ; tv cursor state, 1 visible 
+F_LECHO=3 ; local echo 
 
 ;-------------------------------
     .area CODE 

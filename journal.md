@@ -5,6 +5,8 @@
 
     * Ajout du traitement pour les altérations de caractères du aux touches **CTRL** et **ALT**. Les touches de gauche et de droite sont traitées de la même façon.
 
+    * Ajout de la commande **CTLR+E** pour commuter (toggle) l'écho local sur stm8_terminal. 
+
 * mise à jour du [readme.md](readme.md).
 
 ### 2023-07-04
