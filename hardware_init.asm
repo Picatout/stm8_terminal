@@ -1,23 +1,23 @@
 ;;
-; Copyright Jacques Deschênes 2019,2022  
-; This file is part of stm8_tbi 
+; Copyright Jacques Deschênes 2023  
+; This file is part of stm8_terminal 
 ;
-;     stm8_tbi is free software: you can redistribute it and/or modify
+;     stm8_terminal is free software: you can redistribute it and/or modify
 ;     it under the terms of the GNU General Public License as published by
 ;     the Free Software Foundation, either version 3 of the License, or
 ;     (at your option) any later version.
 ;
-;     stm8_tbi is distributed in the hope that it will be useful,
+;     stm8_terminal is distributed in the hope that it will be useful,
 ;     but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;     GNU General Public License for more details.
 ;
 ;     You should have received a copy of the GNU General Public License
-;     along with stm8_tbi.  If not, see <http://www.gnu.org/licenses/>.
+;     along with stm8_terminal.  If not, see <http://www.gnu.org/licenses/>.
 ;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; hardware initialisation
+;;; hardware initialization
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
 
 ;------------------------
@@ -29,7 +29,7 @@
 
     .include "config.inc"
 
-STAKC_SIZE=128   
+STACK_SIZE=128   
 ;;-----------------------------------
     .area SSEG (ABS)
 ;; working buffers and stack at end of RAM. 	
@@ -50,7 +50,7 @@ stack_unf: ; stack underflow ; RAM end +1 -> 0x1800
 	int NonHandledInterrupt ;int1 AWU   auto wake up from halt
 	int NonHandledInterrupt ;int2 CLK   clock controller
 	int NonHandledInterrupt ;int3 EXTI0 gpio A external interrupts
-	int NonHandledInterrupt ;int4 EXTI1 gpio B external interrupts
+	int ps2_intr_handler    ;int4 EXTI1 gpio B external interrupts
 	int NonHandledInterrupt ;int5 EXTI2 gpio C external interrupts
 	int NonHandledInterrupt ;int6 EXTI3 gpio D external interrupts
 	int NonHandledInterrupt ;int7 EXTI4 gpio E external interrupts
@@ -100,14 +100,22 @@ ptr16::  .blkb 1 ; 16 bits pointer , farptr high-byte
 ptr8:   .blkb 1 ; 8 bits pointer, farptr low-byte  
 flags:: .blkb 1 ; various boolean flags
 
-; keyboard variables 
-KBD_QUEUE_SIZE=8
+; keyboard variables
+; received scan codes queue 
+SC_QUEUE_SIZE=32  
+sc_queue: .blkb SC_QUEUE_SIZE ; scan codes queue 
+sc_qhead: .blkb 1  ; sc_queue head index 
+sc_qtail: .blkb 1  ; sc_queue tail index 
+in_byte:  .blkb 1 ; shift in byte buffer 
+parity:   .blkb 1 ; parity bit 
+sc_rx_flags: .blkb 1 ; receive code flags 
+sc_rx_phase: .blkb 1 ; scan code receive phase 
 
-kbd_rx_byte: .blkb 1 ; keyboard receive byte 
-kbd_rx_count: .blkb 1 ; keyboard receive bits counter 
+KBD_QUEUE_SIZE=8
 kbd_queue: .blkb KBD_QUEUE_SIZE 
 kbd_queue_head: .blkb 1 
 kbd_queue_tail: .blkb 1 
+kbd_state: .blkb 1 ; keyboard state flags 
 
 ; tvout variables 
 ntsc_flags: .blkb 1 
@@ -262,27 +270,17 @@ cold_start:
 ; used for user interface 
 	call uart_init
 	call ntsc_init ;
-	call timer4_init   
+	call timer4_init
+	call ps2_init    
 	rim ; enable interrupts 
-
-
-.if 1
-;---------------
-;tv test loop 
-;---------------
-;	call uart_cls 
-;	ldw x,#uart_test 
-;	call uart_puts 
-	call tv_cls
-	ldw x,#tv_test_msg 
-	call tv_puts 
-1$:	
-	call uart_getc 
-	call uart_print_char
-	call tv_print_char  
-	jra 1$
-tv_test_msg: .asciz "TV terminal test\n" 
-uart_test: .asciz "UART echo test\n" 
-.else 
-jra .
+	bset flags,#F_LECHO ; local echo from keyboard to tv 
+	call uart_cls 
+.if 0 
+2$:
+call wait_next_code 
+call uart_print_hex_byte 
+call uart_space 
+jra 2$
 .endif 
+	call tv_cls 
+	jp main ; in tv_term.asm 

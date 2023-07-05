@@ -187,7 +187,7 @@ sync_exit:
             addw y,(FONT_ROW,sp)
             ld a,(y)
             _shift_out_char ; 14 cy  
-            n=n+2 ;addw x,#2 ; 2 cy 
+            n=n+2 ; 2 cy 
         .endm ; 
     .endm 
 

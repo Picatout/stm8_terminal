@@ -105,6 +105,10 @@ uart_delback:
 	call uart_putc 
 	ret 
 
+;------------------------
+; clear VT10x terminal 
+; screeen 
+;------------------------
 uart_cls:
 	push a 
 	ld a,#ESC 
@@ -114,6 +118,14 @@ uart_cls:
 	pop a 
 	ret 
 
+;--------------------
+; send blank character 
+; to UART 
+;---------------------
+uart_space:
+	ld a,#SPACE 
+	call uart_putc 
+	ret 
 
 ;---------------------------------
 ; Query for character in rx1_queue

@@ -1,26 +1,13 @@
-;;
-; Copyright Jacques Deschênes 2019 
-; This file is part of MONA 
-;
-;     MONA is free software: you can redistribute it and/or modify
-;     it under the terms of the GNU General Public License as published by
-;     the Free Software Foundation, either version 3 of the License, or
-;     (at your option) any later version.
-;
-;     MONA is distributed in the hope that it will be useful,
-;     but WITHOUT ANY WARRANTY; without even the implied warranty of
-;     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-;     GNU General Public License for more details.
-;
-;     You should have received a copy of the GNU General Public License
-;     along with MONA.  If not, see <http://www.gnu.org/licenses/>.
-;;
+;------------------------------------------------------
+;   ASCII code list  with symbolic names 
+;-------------------------------------------------------
 
 ;-------------------------------------------------------
 ;     ASCII control  values
 ;     CTRL_x   are VT100 keyboard values  
 ; REF: https://en.wikipedia.org/wiki/ASCII    
 ;-------------------------------------------------------
+		NUL = 0  ; null 
 		CTRL_A = 1
 		SOH=CTRL_A  ; start of heading 
 		CTRL_B = 2
@@ -81,9 +68,100 @@
 		GS=29        ; group separator 
 		RS=30		 ; record separator 
 		US=31 		 ; unit separator 
-		SPACE = 32
-		COMMA = 44
+		SPACE = 32   ; ' ' 
+		EXCLA	=	33  ; '!'
+		DQUOT	=	34  ; '"'	
+		SHARP =	35  ; '#'
+		DOLLR	=	36  ; '$'
+		PRCNT	=	37  ; '%'
+		AMP	=	38  ; '&'
+		TICK	=	39  ; '\''
+		LPAR	=	40  ; '('
+		RPAR  =	41  ; ')'
+		STAR  =	42  ; '*'
+		PLUS	=	43  ; '+'
+		COMMA = 44  
+		DASH  =	45  ; '-'
+		DOT	=	46  ; '.'
+		SLASH =	47  ; '/'
+		ZERO =	48  ; '0'
+		ONE	=	49  ; '1'
+		TWO 	=	50  ; '2'
+		THREE	=	51  ; '3'	
+		FOUR	=	52  ; '4'
+		FIVE	=	53  ; '5'
+		SIX	=	54  ; '6'
+		SEVEN	=	55  ; '7'
+		EIGHT	=	56  ; '8'
+		NINE	=	57  ; '9'
 		COLON = 58 
 		SEMIC = 59  
-		SHARP = 35
-		TICK = 39
+		LT	=	60  ; '<'
+		EQUAL =	61  ; '='
+		GT	=	62  ; '>'
+		QUST	=	63  ; '?'
+		AROB	=	64  ; '@'
+		AU	=	65  ; 'A'
+		BU	=	66  ; 'B'
+		CU	=	67  ; 'C'
+		DU	=	68  ; 'D'
+		EU	=	69  ; 'E'
+		FU	=	70  ; 'F'
+		GU	=	71  ; 'G'
+		HU	=	72  ; 'H'
+		IU	=	73  ; 'I'
+		JU	=	74  ; 'J'
+		KU	=	75  ; 'K'
+		LU	=	76  ; 'L'
+		MU	=	77  ; 'M'
+		NU	=	78  ; 'N'
+		OU	=	79  ; 'O'
+		PU	=	80  ; 'P'
+		QU	=	81  ; 'Q'
+		RU	=	82  ; 'R'
+		SU	=	83  ; 'S'
+		TU	=	84  ; 'T'
+		UU	=	85  ; 'U'
+		VU	=	86  ; 'V'
+		WU	=	87  ; 'W'
+		XU	=	88  ; 'X'
+		YU	=	89  ; 'Y'
+		ZU	=	90  ; 'Z'
+		LBRK	=	91  ; '['
+		BSLA	=	92  ; '\\'
+		RBRK	=	93  ; ']'
+		CIRC	=	94  ; '^'
+		UNDR	=	95  ; '_'
+		ACUT	=	96  ; '`'
+		AL	=	97  ; 'a'
+		BL	=	98  ; 'b'
+		CL	=	99  ; 'c'
+		DL	=	100 ; 'd'
+		EL	=	101 ; 'e'
+		FL	=	102 ; 'f'
+		GL	=	103 ; 'g'
+		HL	=	104 ; 'h'
+		IL	=	105 ; 'i'
+		JL	=	106 ; 'j'
+		KL	=	107 ; 'k'
+		LL	=	108 ; 'l'
+		ML	=	109 ; 'm'
+		NL	=	110 ; 'n'
+		OL	=	111 ; 'o'
+		PL	=	112 ; 'p'
+		QL	=	113 ; 'q'
+		RL	=	114 ; 'r'
+		SL	=	115 ; 's'
+		TL	=	116 ; 't'
+		UL	=	117 ; 'u'
+		VL	=	118 ; 'v'
+		WL	=	119 ; 'w'
+		XL	=	120 ; 'x'
+		YL	=	121 ; 'y'
+		ZL	=	122 ; 'z'
+		LBRC	=	123 ; '{'
+		PIPE	=	124 ; '|'
+		RBRC	=	125 ; '}'
+		TILD	=	126 ; '~'
+		DEL	=	127 ; DELETE	
+	

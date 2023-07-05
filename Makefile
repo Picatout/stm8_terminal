@@ -9,9 +9,9 @@ OBJCPY=objcpy
 CFLAGS=-mstm8 -lstm8 -L$(LIB_PATH) -I../inc
 INC=../inc/
 INCLUDES=$(BOARD_INC) $(INC)ascii.inc $(INC)gen_macros.inc \
-         app_macros.inc
+         app_macros.inc ps2_codes.inc
 BUILD=build/
-SRC=hardware_init.asm std_func.asm ps2.asm tvout.asm uart.asm font.asm  tv_term.asm 
+SRC=hardware_init.asm std_func.asm ps2.asm mcSaite.asm tvout.asm uart.asm font.asm  tv_term.asm 
 OBJECT=$(BUILD)$(BOARD)/$(NAME).rel
 OBJECTS=$(BUILD)$(BOARD)/$(SRC:.asm=.rel)
 LIST=$(BUILD)$(BOARD)/$(NAME).lst

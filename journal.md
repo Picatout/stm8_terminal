@@ -1,6 +1,18 @@
+### 2023-07-04
+
+* Avancement du travial sur [ps2.asm](ps2.asm), traite les touches **Ver. maj.** et  **Maj.** correctement. Reste à implémentater le traitement des touches **CTRL** et **ALT**. 
+
+* Travail sur [ps2.asm](ps2.asm).
+
 ### 2023-07-03 
 
-* * Travail sur [tvout.asm](tvout.asm), j'ai trouvé une méthode pour permettre d'afficher 40 caractères par ligne. Le tampon vidéo contient l'adresse du caractère dans la table de la police, plutôt que le caractère lui-même. De cette façon cette adresse n'a pas besoin d'être calculé au moment de l'affichage. On sauve ainsi plusieurs cycles machines par caractère. De plus l'espace entre chaque caractère est plus étroit ce qui améliore l'apparence.
+* Début du travail sur [ps2.asm](ps2.asm).
+
+* Corrigé bogue dans *tv_cursor_right*. 
+
+* Corrigé bogue dans *tv_disable_cursor*. 
+
+*  Travail sur [tvout.asm](tvout.asm), j'ai trouvé une méthode pour permettre d'afficher 40 caractères par ligne. Le tampon vidéo contient l'adresse du caractère dans la table de la police, plutôt que le caractère lui-même. De cette façon cette adresse n'a pas besoin d'être calculé au moment de l'affichage. On sauve ainsi plusieurs cycles machines par caractère. De plus l'espace entre chaque caractère est plus étroit ce qui améliore l'apparence.
 
 ### 2023-07-02
 
