@@ -1,6 +1,6 @@
 ### 2023-07-04
 
-* Avancement du travial sur [ps2.asm](ps2.asm), traite les touches **Ver. maj.** et  **Maj.** correctement. Reste à implémentater le traitement des touches **CTRL** et **ALT**. 
+* Avancement du travail sur [ps2.asm](ps2.asm), traite les touches **Ver. maj.** et  **Maj.** correctement. Reste à implémentater le traitement des touches **CTRL** et **ALT**. 
 
 * Travail sur [ps2.asm](ps2.asm).
 

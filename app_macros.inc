@@ -28,7 +28,11 @@
     ; boolean flags 
     F_LECHO=0 ; terminal local echo 
 
-
+; version 
+    MAJOR=1 
+    MINOR=0 
+    REV=0 
+    
 ;--------------------------------------
 ;   assembler flags 
 ;-------------------------------------

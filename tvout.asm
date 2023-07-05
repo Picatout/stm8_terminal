@@ -182,14 +182,14 @@ sync_exit:
     .macro _shift_out_scan_line
         n=0
         .rept CHAR_PER_LINE
-            ldw y,x 
-            ldw y,(n,y)
-            addw y,(FONT_ROW,sp)
-            ld a,(y)
+            ldw y,x  ; 1cy 
+            ldw y,(n,y)  ; 2 cy 
+            addw y,(FONT_ROW,sp) ; 2 cy 
+            ld a,(y) ; 1 cy 
             _shift_out_char ; 14 cy  
-            n=n+2 ; 2 cy 
+            n=n+2 
         .endm ; 
-    .endm 
+    .endm  20 cy
 
     FONT_ROW=1 ; font_char_row  
     VSIZE=2   
