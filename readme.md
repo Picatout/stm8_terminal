@@ -25,7 +25,7 @@ Après plusieurs expérimentation avec le périphérique SPI qui ne donnait pas 
 1. Le tampon video **video_buffer** ne contient pas les caractères à afficher mais l'adresse du caractère dans la table **font_6x8**. Ainsi il n'y a pas de cycle perdu pour faire le calcul de l'adresse du caractère pendant l'affichage. C'est la routine **tv_putc** qui fait le travail. 
 
 1. Pour sortir les pixels vidéos il faut sérialiser les pixels représentant le caractère. Faire ça en sorftware prend 14 cycles cpu avec la macro  **_shift_out_char** du fichier [tvout.asm](tvout.asm).
-La macro **_shift_out_scan_line** prend 20 cycles au total en incluant **_shift_out_char**. Si on fait le calcul pour 40 caractères ça fait 800 cycles soit 40µsec. Bien en déça des 52µsec allouée. Ça c'est selon les cycles machines fournis par le manufacturier du STM8 mais en pratique la durée mesurée à l'oscilloscope est de 51.2µsec. C'est serré! Tellement serré que je ne pouvait utiliser des boucles avec compteurs. Pour arrivé à ce temps j'ai du dérouler la macro 40 fois. 
+La macro **_shift_out_scan_line** prend 20 cycles au total en incluant **_shift_out_char**. Si on fait le calcul pour 40 caractères ça fait 800 cycles soit 40µsec. Bien en déça des 52µsec allouée. Ça c'est selon les cycles machines fournis par le manufacturier du STM8 mais en pratique la durée mesurée à l'oscilloscope est de 51.2µsec. C'est serré! Tellement serré que je ne pouvait utiliser des boucles avec compteurs. Pour arriver à ce temps j'ai du dérouler la macro 40 fois. 
 
 
 
