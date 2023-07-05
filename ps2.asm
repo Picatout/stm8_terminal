@@ -254,10 +254,16 @@ state_flag:
     tnz a 
     ret 
 
-;-----------------------
-; depending on state 
-; of F_CAPS and F_SHIFT 
-; switch character  
+;----------------------------------
+; modify charcter if 
+; SHIFT key is down 
+; LEFT and RIGHT keys considered same.
+; input:
+;   A    character in
+; output:
+;   A    character out
+;   C    set if SHIFT key down   
+;----------------------------------- 
 ; input:
 ;    A     letter 
 ; output:
@@ -272,26 +278,63 @@ if_shifted:
     xor a,#32 
 1$:
     btjf kbd_state,#F_SHIFT,2$ 
-    xor a,#32 
+    xor a,#32
+    scf  
 2$: jra 9$ 
 4$: ; not letter search shifted_table 
     btjf kbd_state,#F_SHIFT,9$ 
-    push a 
     ldw x,#shifted_codes 
-5$: 
-    ld a,(x)
-    jreq 6$ 
-    cp a,(1,sp)
-    jreq 7$ 
-    addw x,#2 
-    jra 5$ 
-6$: ld a,(1,sp); not in table keep same. 
-    jra 8$     
-7$: ld a,(1,x)
+    call table_lookup 
+    scf 
 8$: _drop 1
 9$: popw x 
     ret 
 
+;----------------------------------
+; modify charcter if 
+; CTRL key is down 
+; LEFT and RIGHT keys considered same.
+; input:
+;   A    character in
+; output:
+;   A    character out
+;   C    set if CTRL key down  
+;----------------------------------- 
+if_ctrl_down:
+    pushw x 
+    rcf 
+    btjf kbd_state,#F_CTRL,9$ 
+    call is_alpha 
+    jrnc 2$
+    sub a,#'a-1 ; CTRL+letter converted to {1..26}
+    jra 3$
+2$:
+    ldw x,#control_codes
+    call table_lookup
+3$: 
+    scf 
+9$: popw x 
+    ret 
+
+;----------------------------------
+; modify charcter if 
+; ALT key is down 
+; LEFT and RIGHT keys considered same.
+; input:
+;   A    character in
+; output:
+;   A    character out
+;   C    set if ALT key down   
+;----------------------------------- 
+if_alt_down:
+    pushw x 
+    rcf 
+    btjf kbd_state,#F_ALT,9$ 
+    ldw x,#altchar_codes
+    call table_lookup
+    scf 
+9$: popw x 
+    ret 
 
 ;-------------------------
 ; search scan code 
@@ -301,17 +344,22 @@ if_shifted:
 ;   X    table 
 ; output:
 ;   A    0||ASCII||VK_KEY 
+;   C    0 not found | 1 found 
 ;-------------------------
 table_lookup: 
     push a 
 1$:
     ld a,(x)
-    jreq 9$ 
+    jreq 7$ 
     cp a,(1,sp)
     jreq 8$ 
     addw x,#2 
     jra 1$ 
+7$: ld a,(1,sp)
+    rcf 
+    jra 9$ 
 8$: ld a,(1,x)
+    scf 
 9$: _drop 1 
     ret 
 
@@ -339,9 +387,17 @@ translate_code:
     bset sc_rx_flags,#F_REL 
     jra 0$ 
 2$: call table_lookup
+    jrc 3$ 
+    clr a 
+    jra 9$ 
+3$:
     call state_flag 
     jreq 9$ 
-    call if_shifted  
+    call if_shifted
+    jrc 9$ 
+    call if_ctrl_down
+    jrc 9$ 
+    call if_alt_down  
 9$:
     popw x
     tnz a  

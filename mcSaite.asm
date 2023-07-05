@@ -180,13 +180,13 @@ shifted_codes:
    
 ;;altchar codes 
 altchar_codes:
-   .byte 1,BSLA    ;'\\'
-   .byte 2,AROB    ;'2','@'
-   .byte 3,SLASH   ;'3','/'
-   .byte 6,QUST    ;'6','?'
-   .byte 7,PIPE    ;'7','|'
-   .byte 9,LBRC    ;'9','{'
-   .byte 0,RBRC    ;'0','}'
+   .byte '1,BSLA    ;'\\'
+   .byte '2,AROB    ;'2','@'
+   .byte '3,SLASH   ;'3','/'
+   .byte '6,QUST    ;'6','?'
+   .byte '7,PIPE    ;'7','|'
+   .byte '9,LBRC    ;'9','{'
+   .byte '0,RBRC    ;'0','}'
    .byte 0
    
 ; CTRL alternate codes     
@@ -203,6 +203,6 @@ control_codes:
     .byte VK_DELETE,VK_CDEL ; <CTRL>-<DEL>
     .byte 0
     
-   
+
 
 

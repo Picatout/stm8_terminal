@@ -272,6 +272,21 @@ cold_start:
 	call ntsc_init ;
 	call timer4_init
 	call ps2_init    
+.if 1
+;----------------------------------
+; copying font table 
+; save 2µsec per scan line display 
+; in ntsc_video_interrupt
+;----------------------------------
+	ldw x,#font_end 
+	subw x,#font_6x8 
+	_strxz acc16 
+	ldw x,#256 
+	ldw y,#font_6x8 
+	call move 
+	ldw x,#256 
+	_strxz font_addr 
+.endif 
 	rim ; enable interrupts 
 	bset flags,#F_LECHO ; local echo from keyboard to tv 
 	call uart_cls 

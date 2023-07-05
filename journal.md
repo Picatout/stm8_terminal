@@ -1,3 +1,12 @@
+### 2023-07-05
+
+* Continuation du travail sur [ps2.asm](ps2.asm). 
+    * installation de la police de caractères [font_6x8](font.asm) en mémoire RAM. Ceci permet de sauver 2µsec par scan line dans l'interruption d'affichage vidéo **ntsc_video_interrupt**.
+
+    * Ajout du traitement pour les altérations de caractères du aux touches **CTRL** et **ALT**. Les touches de gauche et de droite sont traitées de la même façon.
+
+* mise à jour du [readme.md](readme.md).
+
 ### 2023-07-04
 
 * Avancement du travail sur [ps2.asm](ps2.asm), traite les touches **Ver. maj.** et  **Maj.** correctement. Reste à implémentater le traitement des touches **CTRL** et **ALT**. 
