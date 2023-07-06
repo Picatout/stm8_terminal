@@ -43,4 +43,21 @@ On obtient un total de **11 cycles**. mais dans la table 3 on voit qu'en fait il
 
 Donc en conclusion le pipelining permet d'accélérer l'exécution des instructions sauf qu'il n'est plus possible de se fier au nombre de cycles donnés dans la description de chaque instruction pour calculer le temps d'exécution d'une séquence d'instructions, comme c'est le cas pour un mcu PIC 16Fxxxx. 
 
+### 2026-07-5 
+
+* Modification au circuit du terminal pour ajouter des commutateurs pour la sélection d'options utilisateur.
+
+    * **SW3** sert à sélectionner un écho local lorsqu'il est à **1** 
+    * **SW4** et **SW5** permettent de sélectionner un BAUD rate pour  le UART.
+
+  SW4|SW5|BAUD 
+    -|-|-
+    0|0| 9600
+    0|1| 19200
+    1|0| 38400
+    1|1| 115200
+
+Si les commutateurs ne sont pas installés par défaut les broches sont toutes à **1** à travers les résistances *pull up* MCU, donc il y a écho local et le BAUD est à 115200.
+
+Les commautateurs sont lu lors de l'initialisation et toute modification de leur position requiert un redémarrage du MCU pour que la nouvelle configuration prenne effet.
 

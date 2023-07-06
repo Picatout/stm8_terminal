@@ -51,11 +51,15 @@ UartRxHandler: ; console receive char
 	ld rx1_tail,a 
 5$:	iret 
 
+; values for 20Mhz Fmaster 
+baud_rate: .word 0x823,0x412,0x209,0xae  
+
 ;---------------------------------------------
-; initialize UART, 115200 8N1
+; initialize UART, read external swtiches SW4,SW5 
+; to determine required BAUD rate.
 ; called from cold_start in hardware_init.asm 
 ; input:
-;	none
+;	none      
 ; output:
 ;   none
 ;---------------------------------------------
@@ -68,9 +72,43 @@ uart_init:
 ; enable UART clock
 	bset CLK_PCKENR1,#UART_PCKEN 	
 	bres UART,#UART_CR1_PIEN
-; baud rate 115200
-	mov UART_BRR2,#0xe
-	mov UART_BRR1,#0xa 
+; read external swtiches baud rate option.  
+	clr a 
+	rcf 
+	btjf OPT_BR1_PORT,#OPT_BR1_BIT, 2$ 
+	scf 
+2$:	rlc a 
+    rcf 
+	btjf OPT_BR0_PORT,#OPT_BR0_BIT,3$ 
+	scf 
+3$: rlc a 
+; get BRR value from table 
+	sll a 
+	push a 
+	push #0 
+	ldw x,#baud_rate
+	addw x,(1,sp)
+	ldw x,(x)
+; a little complicated because 
+; BRR2= bits  0:3 || (bits 12:15)>>8 
+; BRR1= bits (bits 4:11) >> 4
+; why do simple when you can do it complicated?  
+	ldw (1,sp),x ; save X 
+	ld a,xl 
+	and a,#15
+	push a 
+	ld a,xh 
+	and a,#0xf0 
+	or a,(1,sp)
+	ld UART_BRR2,a 
+	_drop 1 
+	popw x 
+    srlw x 
+	srlw x 
+	srlw x 
+	srlw x 
+	ld a,xl 
+	ld UART_BRR1,a 
     clr UART_DR
 	mov UART_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN)|(1<<UART_CR2_RIEN));
 	bset UART_CR2,#UART_CR2_SBK

@@ -78,16 +78,35 @@ ntsc_init:
     bset TIM1_CCER2,#0      
 ; begin with PH_PRE_EQU odd field 
     _clrz ntsc_phase 
-    mov TIM1_ARRH,#HLINE>>8 
+    mov TIM1_ARRH,#HLINE>>8
     mov TIM1_ARRL,#HLINE&0XFF
     mov TIM1_CCR1H,#HPULSE>>8 
     mov TIM1_CCR1L,#HPULSE&0XFF
     bset TIM1_CR1,#TIM1_CR1_CEN
     bset TIM1_EGR,#TIM1_EGR_UG      
-    ldw x,#font_6x8
-    _strxz font_addr 
+    call copy_font 
+; test for local echo option
+    btjf OPT_ECHO_PORT,#OPT_ECHO_BIT,1$
+    bset ntsc_flags,#F_LECHO
+1$:    
     call tv_cls 
     call tv_enable_cursor
+    ret 
+
+;----------------------------------
+; copying font table to RAM 
+; save 2µsec per scan line display 
+; in ntsc_video_interrupt
+;----------------------------------
+copy_font:
+	ldw x,#font_end 
+	subw x,#font_6x8 
+	_strxz acc16 
+	ldw x,#256 
+	ldw y,#font_6x8 
+	call move 
+	ldw x,#256 
+	_strxz font_addr 
     ret 
 
 ;-------------------------------

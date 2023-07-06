@@ -34,6 +34,20 @@ LED_PORT = PC_BASE ;port C
 LED_BIT = 5
 LED_MASK = (1<<LED_BIT) ;bit 5 mask
 
+; external options switches 
+
+; select local  echo option 
+; 0 no echo | 1 local echo 
+OPT_ECHO_PORT=PD_IDR 
+OPT_ECHO_BIT=0 
+
+; select UART BAUD RATE 
+OPT_BR0_PORT=PD_IDR 
+OPT_BR0_BIT=2 
+OPT_BR1_PORT=PC_IDR 
+OPT_BR1_BIT=2
+
+
 ; user interface UART via STLINK (T_VCP)
 
 UART=UART3 

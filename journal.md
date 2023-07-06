@@ -1,5 +1,24 @@
 ### 2023-07-05
 
+* Modification de *uart_init* pour lire les switches SW4 et SW5 pour déterminer le BAUD requis.
+
+* Modification de la routine *ntsc_init* pour copier la table *font_6x8* dans la RAM et vérifier l'état de SW3 pour l'écho local.
+
+* Modification au circuit du terminal par l'ajout de commutateurs externes pour les options.
+
+    * **SW3** sélection de l'écho local. 
+        **0** pas d'écho locale 
+        **1** échoe locale 
+
+    * **SW5** et **SW5** sélection du BAUD rate du UART.
+
+    SW4|SW5|BAUD 
+    -|-|-
+    0|0| 9600
+    0|1| 19200
+    1|0| 38400
+    1|1| 115200
+
 * Continuation du travail sur [ps2.asm](ps2.asm). 
     * installation de la police de caractères [font_6x8](font.asm) en mémoire RAM. Ceci permet de sauver 2µsec par scan line dans l'interruption d'affichage vidéo **ntsc_video_interrupt**.
 
