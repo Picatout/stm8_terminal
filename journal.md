@@ -1,3 +1,9 @@
+### 2023-07-10
+
+* Nouvelle tentative d'urtiliser le périphérique SPI dans tvout.asm
+    * Succès, même que le nombre de caractères affichable par ligne est passé à 64.
+    * Les caractères s'affichent plus nettement, intensité plus régulière.
+
 ### 2023-07-05
 
 * Modification de *uart_init* pour lire les switches SW4 et SW5 pour déterminer le BAUD requis.

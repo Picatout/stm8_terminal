@@ -37,7 +37,7 @@ timer4_init:
 	bset TIM4_IER,#TIM4_IER_UIE
     ret 
 
-CURSOR_DELAY=500 ; msec 
+CURSOR_DELAY=300 ; msec 
 ;----------------------------------
 ; decrement cursro_delay 
 ; when zero toggle cursor state 

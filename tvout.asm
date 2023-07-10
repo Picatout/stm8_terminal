@@ -18,7 +18,7 @@
 
 
 
-CHAR_PER_LINE==40
+CHAR_PER_LINE==64
 LINE_PER_SCREEN==25 
 VISIBLE_SCAN_LINES=200 
 
@@ -30,7 +30,7 @@ HALF_LINE=HLINE/2 ; half-line during sync.
 EPULSE=47 ; pulse width during pre and post equalization
 VPULSE=546 ; pulse width during vertical sync. 
 HPULSE=94 ; 4.7µSec horizontal line sync pulse width. 
-LINE_DELAY=(160) 
+LINE_DELAY=(150) 
 
 ; ntsc synchro phases 
 PH_VSYNC=0 
@@ -64,6 +64,11 @@ ntsc_init:
     bres PC_ODR,#6
     bset PC_CR1,#6
     bset PC_CR2,#6
+.if 1 
+    clr SPI_SR 
+    clr SPI_DR 
+    mov SPI_CR1,#(1<<SPI_CR1_SPE)|(1<<SPI_CR1_MSTR)
+.endif 
 ; initialize timer1 for pwm 
     mov TIM1_IER,#1 ; UIE set 
     bset TIM1_CR1,#TIM1_CR1_ARPE ; auto preload enabled 
@@ -84,7 +89,7 @@ ntsc_init:
     mov TIM1_CCR1L,#HPULSE&0XFF
     bset TIM1_CR1,#TIM1_CR1_CEN
     bset TIM1_EGR,#TIM1_EGR_UG      
-    call copy_font 
+    call copy_font
 ; test for local echo option
     btjf OPT_ECHO_PORT,#OPT_ECHO_BIT,1$
     bset ntsc_flags,#F_LECHO
@@ -189,16 +194,6 @@ sync_exit:
 ;----------------------------------
 ; TIMER1 compare interrupt handler
 ;----------------------------------
-; shift out character bits 
-    .macro _shift_out_char  
-        .rept 6
-            rlc a ; 1 CY 
-            bccm PC_ODR,#6 ; 1 cy  
-        .endm ; 12 cy 
-        nop ; 1 cy 
-        bres PC_ODR,#6 ; 1 cy 
-   .endm ; 14 cy 
-
     .macro _shift_out_scan_line
         n=0
         .rept CHAR_PER_LINE
@@ -206,17 +201,18 @@ sync_exit:
             ldw y,(n,y)  ; 2 cy 
             addw y,(FONT_ROW,sp) ; 2 cy 
             ld a,(y) ; 1 cy 
-            _shift_out_char ; 14 cy  
+             btjf SPI_SR,#SPI_SR_TXE,. ; 2 cy 
+             ld SPI_DR,a ; 1 cy 
             n=n+2 
-        .endm ; 
-    .endm  20 cy
+        .endm ;
+    .endm  8 cy
 
     FONT_ROW=1 ; font_char_row  
-    VSIZE=2   
+    VSIZE=2  
 ntsc_video_interrupt:
     _vars VSIZE
     clr (FONT_ROW,sp) 
-    clr TIM1_SR1    
+    clr TIM1_SR1
 ; compute postion in buffer 
 ; X=scan_line/16*CHAR_PER_LINE+video_buffer  
 ; FONT_ROW=scan_line%8     
@@ -228,7 +224,11 @@ ntsc_video_interrupt:
     ld a,#2*CHAR_PER_LINE  
     mul x,a  ; video_buffer line  
     addw x,#video_buffer
-    _shift_out_scan_line 
+    bset SPI_CR1,#SPI_CR1_SPE  
+    _shift_out_scan_line
+    btjf SPI_SR,#SPI_SR_TXE,.
+    clr SPI_DR
+    bres SPI_CR1,#SPI_CR1_SPE  
     _ldxz scan_line 
     incw x 
     _strxz scan_line 
