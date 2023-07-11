@@ -2,7 +2,7 @@
 
 Un terminal ASCII réalisé sur une carte NUCLEO-S207K8
 
-*   Affichage 40 caractères par ligne, 25 lignes 
+*   Affichage 64 caractères par ligne, 25 lignes 
 *   Clavier PS/2 
 *   TVout NTSC. 
 *   interface UART niveaux 0:5 volts 
