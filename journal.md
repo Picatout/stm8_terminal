@@ -1,3 +1,12 @@
+### 2023-07-17 
+
+* Le terminal n'était pas assez rapide pour capturer tous les caractères reçus du UART. 
+    * vitesse du UART réduite à 38400BAUD 
+    * Ajout d'une sortie **DTR** sur la broche **D6** 
+    * Augmentation de la file du UART à 64 charactères.
+    * Augmentation de la file des scan codes à 16 octets.
+    * mise à jour révision vers V1.0R2 
+    
 ### 2023-07-10
 
 * Nouvelle tentative d'urtiliser le périphérique SPI dans tvout.asm

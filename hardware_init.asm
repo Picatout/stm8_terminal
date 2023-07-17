@@ -111,7 +111,7 @@ parity:   .blkb 1 ; parity bit
 sc_rx_flags: .blkb 1 ; receive code flags 
 sc_rx_phase: .blkb 1 ; scan code receive phase 
 
-KBD_QUEUE_SIZE=8
+KBD_QUEUE_SIZE=16
 kbd_queue: .blkb KBD_QUEUE_SIZE 
 kbd_queue_head: .blkb 1 
 kbd_queue_tail: .blkb 1 
@@ -129,7 +129,7 @@ cursor_y: .blkb 1
 cursor_delay: .blkw 1 ;  333 msec  delay 
 
 ; uart variable 
-RX_QUEUE_SIZE=8 
+RX_QUEUE_SIZE=64
 rx1_queue: .ds RX_QUEUE_SIZE ; UART1 receive circular queue 
 rx1_head:  .blkb 1 ; rx1_queue head pointer
 rx1_tail:   .blkb 1 ; rx1_queue tail pointer  

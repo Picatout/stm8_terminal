@@ -17,6 +17,7 @@
 ;;
 
 
+DTR=3 ; DTR on PC:3 
 
 CHAR_PER_LINE==64
 LINE_PER_SCREEN==25 
@@ -64,23 +65,28 @@ ntsc_init:
     bres PC_ODR,#6
     bset PC_CR1,#6
     bset PC_CR2,#6
+; set PC:3 as DTR output 
+    bset PC_CR1,#DTR ; push-pull output 
+    bset PC_DDR,#DTR 
+    bres PC_ODR,#DTR      
 .if 1 
     clr SPI_SR 
     clr SPI_DR 
     mov SPI_CR1,#(1<<SPI_CR1_SPE)|(1<<SPI_CR1_MSTR)
 .endif 
-; initialize timer1 for pwm 
+; initialize timer1 for pwm
+; generate NTSC sync signal  
     mov TIM1_IER,#1 ; UIE set 
     bset TIM1_CR1,#TIM1_CR1_ARPE ; auto preload enabled 
     mov TIM1_CCMR1,#(7<<TIM1_CCMR1_OCMODE)  |(1<<TIM1_CCMR1_OC1PE)
     bset TIM1_CCER1,#0
     bset TIM1_BKR,#7
-; use channel to for video stream trigger 
+; use channel 2 for video stream trigger 
 ; set pixel out delay   
     mov TIM1_CCMR2,#(6<<TIM1_CCMR2_OCMODE) 
     mov TIM1_CCR2H,#LINE_DELAY>>8 
     mov TIM1_CCR2L,#LINE_DELAY&0xFF
-    bset TIM1_CCER2,#0      
+;    bset TIM1_CCER1,#0      
 ; begin with PH_PRE_EQU odd field 
     _clrz ntsc_phase 
     mov TIM1_ARRH,#HLINE>>8
@@ -213,6 +219,7 @@ ntsc_video_interrupt:
     _vars VSIZE
     clr (FONT_ROW,sp) 
     clr TIM1_SR1
+    bset PC_ODR,#DTR 
 ; compute postion in buffer 
 ; X=scan_line/16*CHAR_PER_LINE+video_buffer  
 ; FONT_ROW=scan_line%8     
@@ -236,7 +243,7 @@ ntsc_video_interrupt:
     jrmi 3$ 
     bres TIM1_IER,#TIM1_IER_CC2IE
     bset TIM1_IER,#TIM1_IER_UIE
-3$:  
+3$: bres PC_ODR,#DTR  
     _drop VSIZE 
     iret 
 

@@ -29,7 +29,7 @@
 ; version 
     MAJOR=1 
     MINOR=0 
-    REV=1 
+    REV=2
     
 ;--------------------------------------
 ;   assembler flags 
