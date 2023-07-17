@@ -286,7 +286,6 @@ if_shifted:
     ldw x,#shifted_codes 
     call table_lookup 
     scf 
-8$: _drop 1
 9$: popw x 
     ret 
 

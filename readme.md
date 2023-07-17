@@ -43,7 +43,11 @@ On obtient un total de **11 cycles**. mais dans la table 3 on voit qu'en fait il
 
 Donc en conclusion le pipelining permet d'accélérer l'exécution des instructions sauf qu'il n'est plus possible de se fier au nombre de cycles donnés dans la description de chaque instruction pour calculer le temps d'exécution d'une séquence d'instructions, comme c'est le cas pour un mcu PIC 16Fxxxx. 
 
-### 2026-07-5 
+### 2023-07-17
+
+L'intégration du **STM8_terminal** avec l'ordinateur **POMME-I** a nécessité des modifications aux 2 projets. Durant certaines opérations du terminal ce dernier perdait des caractères envoyés par l'ordinateur. Le problème a été corrigé par l'ajout d'un contrôle de flux matériel appellé **DTR** pour *Data Terminal Ready*. l'ordinateur n'envoie des caractères au terminal que lorsque ce signal est à **0** volt.
+
+### 2023-07-05 
 
 * Modification au circuit du terminal pour ajouter des commutateurs pour la sélection d'options utilisateur.
 

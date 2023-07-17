@@ -47,6 +47,8 @@ F_EVEN=0 ; odd/even field flag
 F_CURSOR=1 ; tv cursor active 
 F_CUR_VISI=2 ; tv cursor state, 1 visible 
 F_LECHO=3 ; local echo 
+F_VIDEO=4 ; enable video output 
+F_NO_DTR=5 ; forbid DTR during some operation
 
 ;-------------------------------
     .area CODE 
@@ -93,8 +95,6 @@ ntsc_init:
     mov TIM1_ARRL,#HLINE&0XFF
     mov TIM1_CCR1H,#HPULSE>>8 
     mov TIM1_CCR1L,#HPULSE&0XFF
-    bset TIM1_CR1,#TIM1_CR1_CEN
-    bset TIM1_EGR,#TIM1_EGR_UG      
     call copy_font
 ; test for local echo option
     btjf OPT_ECHO_PORT,#OPT_ECHO_BIT,1$
@@ -102,7 +102,31 @@ ntsc_init:
 1$:    
     call tv_cls 
     call tv_enable_cursor
+    bset TIM1_CR1,#TIM1_CR1_CEN 
+    ld a,#1
+    call video_on_off 
     ret 
+
+;--------------------
+; enable|disable 
+; video output 
+; input:
+;   A    0->off 
+;        1->on
+;--------------------
+video_on_off:
+    tnz a 
+    jreq 1$ 
+; enable video 
+    bset ntsc_flags,#F_VIDEO 
+    bset TIM1_IER,#TIM1_IER_UIE 
+    ret     
+1$: ; disable video 
+    bres ntsc_flags,#F_VIDEO 
+    bres TIM1_IER,#TIM1_IER_CC2IE 
+    bset TIM1_IER,#TIM1_IER_UIE 
+    ret 
+
 
 ;----------------------------------
 ; copying font table to RAM 
@@ -173,6 +197,7 @@ test_pre_video:
     cpw x,#FIRST_VIDEO_LINE
     jrne sync_exit 
     inc a 
+    btjf ntsc_flags,#F_VIDEO,sync_exit
     bres TIM1_IER,#TIM1_IER_UIE 
     bset TIM1_IER,#TIM1_IER_CC2IE
     jra sync_exit
@@ -243,7 +268,9 @@ ntsc_video_interrupt:
     jrmi 3$ 
     bres TIM1_IER,#TIM1_IER_CC2IE
     bset TIM1_IER,#TIM1_IER_UIE
-3$: bres PC_ODR,#DTR  
+3$: btjt ntsc_flags,#F_NO_DTR,4$
+    bres PC_ODR,#DTR  
+4$:
     _drop VSIZE 
     iret 
 

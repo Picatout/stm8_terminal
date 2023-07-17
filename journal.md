@@ -1,5 +1,9 @@
 ### 2023-07-17 
 
+* L'intégration du **STM8_terminal** avec l'ordinateur **POMME-I** a nécessité des modifications aux 2 projets. Durant certaines opérations du terminal ce dernier perdait des caractères envoyés par l'ordinateur. Le problème a été corrigé par l'ajout d'un contrôle de flux matériel appellé **DTR** pour *Data Terminal Ready*. l'ordinateur n'envoie des caractères au terminal que lorsque ce signal est à **0** volt.
+
+* Corrigé bogue dans routine *if_shifted* du fichier [ps2.asm](ps2.asm).
+
 * Le terminal n'était pas assez rapide pour capturer tous les caractères reçus du UART. 
     * vitesse du UART réduite à 38400BAUD 
     * Ajout d'une sortie **DTR** sur la broche **D6** 

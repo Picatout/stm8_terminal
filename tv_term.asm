@@ -177,7 +177,6 @@ tv_cursor_pos:
 ;-------------------------------
 tv_cursor_right: 
     push a 
-    _ldaz cursor_x 
     _incz cursor_x 
     _ldaz  cursor_x 
     cp a,#CHAR_PER_LINE 
@@ -194,6 +193,7 @@ tv_scroll_up:
     pushw x 
     pushw y
     push a  
+    bset ntsc_flags,#F_NO_DTR ; block terminal from receiving characters 
     ldw x,#2*(CHAR_PER_LINE*LINE_PER_SCREEN-CHAR_PER_LINE)
     _strxz acc16 
     ldw x,#video_buffer 
@@ -202,9 +202,10 @@ tv_scroll_up:
     call move
     ld a,#LINE_PER_SCREEN-1 
     call tv_clear_line  
+    bres ntsc_flags,#F_NO_DTR 
     pop a 
     popw y 
-    popw x 
+    popw x
     ret 
 
 ;-------------------------------
@@ -220,7 +221,6 @@ tv_clear_line:
     pushw y
     _vars VSIZE 
     ldw y,#CHAR_PER_LINE ; fill counter 
-    clr (LINE_OFFSET,sp)
 ; line offset=2*LINE#*CHAR_PER_LINE     
     sll a 
     ldw x,#CHAR_PER_LINE   
@@ -306,7 +306,8 @@ tv_print_char:
     jrne 9$ 
     call uart_getc
     cp a,#'c 
-    jrne 9$ 
+    jrne 9$
+    clr a  
     call tv_cls 
     jra 9$    
 8$: 
