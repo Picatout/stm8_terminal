@@ -271,6 +271,5 @@ cold_start:
 	call timer4_init
 	call ps2_init    
 	rim ; enable interrupts 
-	call uart_cls 
 	call tv_cls 
 	jp main ; in tv_term.asm 

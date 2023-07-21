@@ -19,7 +19,7 @@
 
 DTR=3 ; DTR on PC:3 
 
-CHAR_PER_LINE==64
+CHAR_PER_LINE==62
 LINE_PER_SCREEN==25 
 VISIBLE_SCAN_LINES=200 
 
@@ -31,7 +31,7 @@ HALF_LINE=HLINE/2 ; half-line during sync.
 EPULSE=47 ; pulse width during pre and post equalization
 VPULSE=546 ; pulse width during vertical sync. 
 HPULSE=94 ; 4.7µSec horizontal line sync pulse width. 
-LINE_DELAY=(150) 
+LINE_DELAY=(140) 
 
 ; ntsc synchro phases 
 PH_VSYNC=0 
@@ -245,6 +245,23 @@ ntsc_video_interrupt:
     clr (FONT_ROW,sp) 
     clr TIM1_SR1
     bset PC_ODR,#DTR 
+    ld a,TIM1_CNTRL 
+    and a,#7 
+    push a 
+    push #0 
+    ldw x,#jitter_cancel 
+    addw x,(1,sp)
+    _drop 2 
+    jp (x)
+jitter_cancel:
+    nop 
+    nop 
+    nop 
+    nop 
+    nop 
+    nop 
+    nop 
+    nop 
 ; compute postion in buffer 
 ; X=scan_line/16*CHAR_PER_LINE+video_buffer  
 ; FONT_ROW=scan_line%8     
