@@ -20,8 +20,11 @@
 ;   tv terminal 
 ;-------------------
 
+; cursor shapes 
 BLANK=SPACE  
 BLOCK=95+32 
+UNDERLINE=101+32 
+INSERT=102+32 
 
 ;-----------------------
 ; TIMER4 is use to 
@@ -51,9 +54,9 @@ timer4_update_handler:
     ldw x,#CURSOR_DELAY 
     _strxz cursor_delay 
     btjf ntsc_flags,#F_CUR_VISI,2$ 
-    ld a,#BLOCK  
+    ld a,char_cursor  
     jra 8$ 
-2$: ld a,#BLANK 
+2$: ld a,char_under 
 8$: 
     call tv_put_char 
     bcpl ntsc_flags,#F_CUR_VISI 
@@ -68,7 +71,7 @@ tv_disable_cursor:
     bres ntsc_flags,#F_CURSOR 
     bres ntsc_flags,#F_CUR_VISI
     push a 
-    ld a,#BLANK 
+    _ldaz char_under 
     call tv_put_char 
     pop a 
     ret 
@@ -78,6 +81,8 @@ tv_disable_cursor:
 ;-------------------------------
 tv_enable_cursor:
     pushw x 
+    call get_char_under 
+    _straz char_under 
     ldw x,#CURSOR_DELAY  
     _strxz cursor_delay 
     bset ntsc_flags,#F_CURSOR
@@ -94,6 +99,10 @@ tv_cls:
     pushw y 
     push a 
     call tv_disable_cursor 
+    ld a,#BLOCK 
+    _straz char_cursor
+    ld a,#BLANK 
+    _straz char_under  
     ldw y,#CHAR_PER_LINE*LINE_PER_SCREEN
     ld a,#BLANK  
     call font_char_address
@@ -150,6 +159,21 @@ font_char_address:
     ldw x,#8 
     mul x,a 
     addw x,font_addr 
+    ret 
+
+;-------------------------
+; get character under cursor 
+; output:
+;      A    character 
+;---------------------------
+get_char_under:
+    call tv_cursor_pos
+    ldw x,(x)
+    subw x,font_addr
+    ld a,#8
+    div x,a 
+    ld a,xl 
+    add a,#32 
     ret 
 
 ;-------------------------
@@ -370,14 +394,16 @@ process_csi:
     cp a,#'G 
     jrne 3$ 
 ; put cursor a column
-    ldw x,(PN,sp)
+    ldw x,(PN,sp) ; Pn e|{1..62}
+    decw x        ; cursor_x e|{0..61} 
     call set_cursor_column
     jra 9$ 
 3$:    
     cp a,#'d 
     jrne 4$ 
 ; put cursor at line 
-    ldw x,(PN,sp)
+    ldw x,(PN,sp) ; Pn e|{1..25}
+    decw x        ; cursor_y e|{0..24}
     call set_cursor_line
     jra 9$ 
 4$:
@@ -385,8 +411,10 @@ process_csi:
     jrne 9$ ; ignore it 
 ; put cusor at line and column 
     ldw x,(PN,sp)
+    decw x 
     call set_cursor_line
     ldw x,(PM,sp)
+    decw x 
     call set_cursor_column
 9$:
     _drop VSIZE 

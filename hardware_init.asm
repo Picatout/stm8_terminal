@@ -127,6 +127,8 @@ font_addr: .blkw 1 ; font table address
 cursor_x: .blkb 1 
 cursor_y: .blkb 1 
 cursor_delay: .blkw 1 ;  333 msec  delay 
+char_under: .blkb 1 ; character under cursor 
+char_cursor: .blkb 1 ; character used for cursor 
 
 ; uart variable 
 RX_QUEUE_SIZE=64

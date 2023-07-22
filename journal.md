@@ -1,3 +1,11 @@
+### 2023-07-22
+
+* Révision 6 
+
+* Modifié [tv_term.asm](tv_term.asm) pour que le caractère sous le curseur soit préservé.
+
+* Modification à la routine *process_csi* du fichier [tv_term.asm](tv_term.asm). Le problème est le suivant, à l'interne les valeurs de position du curseur son comptée à partir de zéro alors que la commande **LOCATE** de **POMME BASIC** compte à partir de **1** comme les commandes ANSI. Il faut donc décrémenter la valeur des paramètres avant de les appliquer. Je n'avais pas tenu compte de ça dans la première écriture de la routine.
+
 ### 2023-07-21 
 
 * Ajout des séquences de contrôle suivantes:
