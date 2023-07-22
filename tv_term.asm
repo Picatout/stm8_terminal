@@ -152,6 +152,32 @@ font_char_address:
     addw x,font_addr 
     ret 
 
+;-------------------------
+; set cursor column 
+; input:
+;    X   column 
+;-------------------------
+set_cursor_column:
+    call tv_disable_cursor 
+    ld a,#CHAR_PER_LINE
+    div x,a 
+    _straz cursor_x 
+    call tv_enable_cursor 
+    ret 
+
+;-------------------------
+; set cursor line 
+; input:
+;    X    line 
+;------------------------
+set_cursor_line:
+    call tv_disable_cursor
+    ld a,#CHAR_PER_LINE
+    div x,a 
+    _straz cursor_y 
+    call tv_enable_cursor
+    ret 
+
 ;------------------------
 ; return cursor position 
 ; in  video_buffer
@@ -306,15 +332,97 @@ tv_print_char:
     jrne 9$ 
     call uart_getc
     cp a,#'c 
-    jrne 9$
+    jrne 4$
     clr a  
     call tv_cls 
-    jra 9$    
+    jra 9$
+4$: cp a,#'[
+    jrne 9$ 
+    call process_csi 
+    jra 9$         
 8$: 
     call tv_put_char
     call tv_cursor_right
 9$:
     call tv_enable_cursor
+    ret 
+
+
+;------------------------------------
+; sequence control introducer
+; received, process control sequence 
+;------------------------------------
+; csi parameters 
+    PN=1 ; first parameter 
+    PM=PN+2  ; second parameter
+    VSIZE=PM+1 
+process_csi:
+    _vars VSIZE
+; first parameter 
+    call get_parameter 
+    ldw (PN,sp),x
+    cp a,#';
+    jrne 2$      
+; second parameter     
+    call get_parameter 
+    ldw (PM,sp),x 
+2$:; recognize 'G','d' and 'H' 
+    cp a,#'G 
+    jrne 3$ 
+; put cursor a column
+    ldw x,(PN,sp)
+    call set_cursor_column
+    jra 9$ 
+3$:    
+    cp a,#'d 
+    jrne 4$ 
+; put cursor at line 
+    ldw x,(PN,sp)
+    call set_cursor_line
+    jra 9$ 
+4$:
+    cp a,#'H 
+    jrne 9$ ; ignore it 
+; put cusor at line and column 
+    ldw x,(PN,sp)
+    call set_cursor_line
+    ldw x,(PM,sp)
+    call set_cursor_column
+9$:
+    _drop VSIZE 
+    ret 
+
+
+;----------------------
+; get control sequence 
+; parameter 
+; output:
+;    A     last character 
+;    X     parameter  
+;----------------------
+    DIGIT=1 
+    PM=DIGIT+2 
+    VSIZE=PM+1
+get_parameter:
+    _vars VSIZE 
+    clrw x 
+    ldw (DIGIT,sp),x 
+    ldw (PM,sp),x 
+1$: 
+    call uart_getc 
+    call is_digit 
+    jrnc 2$ 
+    sub a,#'0
+    ld (DIGIT+1,sp),a 
+    ld a,#10
+    ldw x,(PM,sp)
+    mul x,a 
+    addw x,(DIGIT,sp)
+    ldw (PM,sp),x 
+    jra 1$ 
+2$:
+    ldw x,(PM,sp)
+    _drop VSIZE 
     ret 
 
 

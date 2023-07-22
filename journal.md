@@ -1,3 +1,10 @@
+### 2023-07-21 
+
+* Ajout des séquences de contrôle suivantes:
+    * **ESC [ Pn G**  pour positionné le curseur sur la colonne **Pn** {1..62} 
+    * **ESC [ Pn d**  pour positionner le curseur sur la ligne **Pn** {1..25}
+    * **ESC [ Pn ; Pm H** pour positionner le curseur à la ligne **Pn** et la colonne **Pm**.
+
 ### 2023-07-17 
 
 * L'intégration du **STM8_terminal** avec l'ordinateur **POMME-I** a nécessité des modifications aux 2 projets. Durant certaines opérations du terminal ce dernier perdait des caractères envoyés par l'ordinateur. Le problème a été corrigé par l'ajout d'un contrôle de flux matériel appellé **DTR** pour *Data Terminal Ready*. l'ordinateur n'envoie des caractères au terminal que lorsque ce signal est à **0** volt.
