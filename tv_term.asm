@@ -389,33 +389,115 @@ process_csi:
     jrne 2$      
 ; second parameter     
     call get_parameter 
-    ldw (PM,sp),x 
-2$:; recognize 'G','d' and 'H' 
+    ldw (PM,sp),x
+2$:; recognize 'A','B','C','D','G','d' and 'H' 
     cp a,#'G 
     jrne 3$ 
 ; put cursor a column
     ldw x,(PN,sp) ; Pn e|{1..62}
-    decw x        ; cursor_x e|{0..61} 
+    jreq 22$ 
+    decw x 
+22$:
+    ld a,#CHAR_PER_LINE
     call set_cursor_column
-    jra 9$ 
+    jp 9$ 
 3$:    
     cp a,#'d 
     jrne 4$ 
 ; put cursor at line 
     ldw x,(PN,sp) ; Pn e|{1..25}
-    decw x        ; cursor_y e|{0..24}
+    jreq 32$ 
+    decw x 
+32$:
     call set_cursor_line
-    jra 9$ 
+    jp 9$ 
 4$:
     cp a,#'H 
-    jrne 9$ ; ignore it 
+    jrne 5$ ; ignore it 
 ; put cusor at line and column 
     ldw x,(PN,sp)
+    jreq 42$ 
     decw x 
+42$: 
     call set_cursor_line
     ldw x,(PM,sp)
-    decw x 
+    jreq 44$ 
+    decw  x 
+44$:
     call set_cursor_column
+    jra 9$ 
+5$: ; move cursor n lines up 
+    cp a,#'A 
+    jrne 6$ 
+    ldw x,(PN,sp) 
+    jrne 52$ 
+    incw x 
+52$:
+    ld a,#LINE_PER_SCREEN 
+    div x,a 
+    _straz acc8 
+    _ldaz cursor_y  
+    sub a,acc8  
+    jrnc 66$  
+    clr a 
+    jra 66$ 
+6$: ; move cursor n line down 
+    cp a,#'B 
+    jrne 7$ 
+    ldw x,(PN,sp)
+    jrne 62$ 
+    incw x
+62$: 
+    ld a,#LINE_PER_SCREEN 
+    div x,a 
+    add a,cursor_y 
+    cp a,cursor_y 
+    jrult 64$ 
+    cp a,#LINE_PER_SCREEN
+    jrult 66$       
+64$: 
+    ld a,#LINE_PER_SCREEN-1
+66$:
+    clrw x 
+    ld xl,a 
+    call set_cursor_line
+    jra 9$ 
+7$: ; move cursor n spaces right 
+    cp a,#'C 
+    jrne 8$ 
+    ldw x,(PN,sp)
+    jrne 72$ 
+    incw x 
+72$:
+    ld a,#CHAR_PER_LINE
+    div x,a 
+    add a,cursor_x 
+    cp a, cursor_x 
+    jrult 74$
+    cp a,#CHAR_PER_LINE 
+    jrmi 76$
+74$: 
+    ld a,#CHAR_PER_LINE-1
+76$:
+    clrw x 
+    ld xl,a 
+    call set_cursor_column 
+    jra 9$ 
+8$: ; move cursor n spaces left 
+    cp a,#'D 
+    jrne 9$ 
+    ldw x,(PN,sp) 
+    jrne 82$
+    incw x 
+82$:
+    ld a,#CHAR_PER_LINE
+    div x,a 
+    _straz acc8 
+    _ldaz cursor_x  
+    sub a,acc8  
+    jrnc 76$ 
+    clr a  
+    jra 76$ 
 9$:
     _drop VSIZE 
     ret 

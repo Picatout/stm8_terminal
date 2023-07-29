@@ -1,3 +1,13 @@
+### 2023-07-29
+
+* Ajout des séquences de contrôle ANSI suivantes:
+    * ESC[ n A  déplace le curseur de *n* lignes vers le haut.
+    * ESC[ n B  déplace le curseur de *n* lignes vers le bas.
+    * ESC[ n C  déplace le curseur de *n* colonnes vers la droite.
+    * ESC[ n D  déplace le curseur de *n' colonnes veres la gauche. 
+
+Pour toutes ces commandes la valeur par défaut de *n' est **1**. Si le curseur est déjà à la limite la commande est ignorée.    
+
 ### 2023-07-22
 
 * Révision 6 
