@@ -1,3 +1,9 @@
+### 2023-07-31
+
+* Ajout des séquences de contrôle ANSI suivantes:
+    * **ESC[ s**  pour sauvegarder la position actuelle du curseur.
+    * **ESC[ u**  pour restaurer la position du curseur sauvegardée avec **ESC[ s**.
+
 ### 2023-07-29
 
 * Ajout des séquences de contrôle ANSI suivantes:

@@ -345,7 +345,8 @@ tv_print_char:
     jrne 1$ 
     call tv_delback
     jra 9$ 
-1$: cp a,#LF 
+1$: 
+    cp a,#LF 
     jrne 3$ 
 2$:
     call tv_new_line 
@@ -425,7 +426,7 @@ process_csi:
     decw  x 
 44$:
     call set_cursor_column
-    jra 9$ 
+    jp 9$ 
 5$: ; move cursor n lines up 
     cp a,#'A 
     jrne 6$ 
@@ -485,7 +486,7 @@ process_csi:
     jra 9$ 
 8$: ; move cursor n spaces left 
     cp a,#'D 
-    jrne 9$ 
+    jrne 84$ 
     ldw x,(PN,sp) 
     jrne 82$
     incw x 
@@ -497,7 +498,24 @@ process_csi:
     sub a,acc8  
     jrnc 76$ 
     clr a  
-    jra 76$ 
+    jra 76$
+84$:
+    cp a,#'s
+    jrne 86$
+    mov saved_cx,cursor_x 
+    mov saved_cy,cursor_y
+    jra 9$  
+86$: 
+    cp a,#'u
+    jrne 9$ 
+    _ldaz saved_cy 
+    clrw x 
+    ld xl,a 
+    call set_cursor_line
+    _ldaz saved_cx 
+    clrw x
+    ld xl,a 
+    call set_cursor_column
 9$:
     _drop VSIZE 
     ret 

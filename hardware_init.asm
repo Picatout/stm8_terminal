@@ -129,6 +129,8 @@ cursor_y: .blkb 1
 cursor_delay: .blkw 1 ;  333 msec  delay 
 char_under: .blkb 1 ; character under cursor 
 char_cursor: .blkb 1 ; character used for cursor 
+saved_cx: .blkb 1 ; saved cursor position
+saved_cy: .blkb 1 ; restored cursor position 
 
 ; uart variable 
 RX_QUEUE_SIZE=64
