@@ -1,5 +1,8 @@
 ### 2023-07-31
 
+* V1.0R9  Ajout de la commande ANSI 
+    * **ESC_ C** qui retourne le caractère à la position du curseur.
+
 * Ajout des séquences de contrôle ANSI suivantes:
     * **ESC[ s**  pour sauvegarder la position actuelle du curseur.
     * **ESC[ u**  pour restaurer la position du curseur sauvegardée avec **ESC[ s**.

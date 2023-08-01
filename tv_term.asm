@@ -362,9 +362,11 @@ tv_print_char:
     call tv_cls 
     jra 9$
 4$: cp a,#'[
-    jrne 9$ 
+    jrne 5$ 
     call process_csi 
-    jra 9$         
+    jra 9$ 
+5$: cp a,#'_ 
+    call proccess_app_cmd             
 8$: 
     call tv_put_char
     call tv_cursor_right
@@ -520,6 +522,19 @@ process_csi:
     _drop VSIZE 
     ret 
 
+;------------------------
+;  application program 
+;  commande ESC_ 
+;------------------------
+proccess_app_cmd:
+    call uart_getc 
+    cp a,#'C 
+    jrne 9$ 
+; ESC_C return character at cursor position
+    call get_char_under
+    call uart_putc
+9$: 
+    ret 
 
 ;----------------------
 ; get control sequence 
