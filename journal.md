@@ -1,3 +1,12 @@
+### 2023-08-02
+
+* V1.0R10 
+
+* Ajout de la commande ANSI  **ESC[6n** qui renvoie la position du curseur sous la forme: **ESC[n;mR**
+
+* Ajout de la commande d'application **ESC_V** pour demander au terminal d'imprimer la version de son firwmare.
+
+
 ### 2023-07-31
 
 * V1.0R9  Ajout de la commande ANSI 

@@ -366,7 +366,7 @@ tv_print_char:
     call process_csi 
     jra 9$ 
 5$: cp a,#'_ 
-    call proccess_app_cmd             
+    call process_app_cmd             
 8$: 
     call tv_put_char
     call tv_cursor_right
@@ -393,7 +393,7 @@ process_csi:
 ; second parameter     
     call get_parameter 
     ldw (PM,sp),x
-2$:; recognize 'A','B','C','D','G','d' and 'H' 
+2$:; recognize 'A','B','C','D','G','d','H' and 'n'  
     cp a,#'G 
     jrne 3$ 
 ; put cursor a column
@@ -464,7 +464,7 @@ process_csi:
     clrw x 
     ld xl,a 
     call set_cursor_line
-    jra 9$ 
+    jp 9$ 
 7$: ; move cursor n spaces right 
     cp a,#'C 
     jrne 8$ 
@@ -509,7 +509,7 @@ process_csi:
     jra 9$  
 86$: 
     cp a,#'u
-    jrne 9$ 
+    jrne 88$ 
     _ldaz saved_cy 
     clrw x 
     ld xl,a 
@@ -518,23 +518,124 @@ process_csi:
     clrw x
     ld xl,a 
     call set_cursor_column
+    jra 9$ 
+88$: 
+    cp a,#'n 
+    jrne 9$ 
+    ldw x,(PN,sp)
+    cpw x,#6 
+    jrne 9$ 
+; report cursor position 
+    ld a,#ESC
+    call uart_putc 
+    ld a,#'[
+    call uart_putc 
+    clrw x 
+    _ldaz cursor_y 
+    inc a 
+    ld xl,a 
+    call send_parameter  
+    ld a,#'; 
+    call uart_putc 
+    clrw x 
+    _ldaz cursor_x 
+    inc a 
+    ld xl,a 
+    call send_parameter 
+    ld a,#'R 
+    call uart_putc 
 9$:
     _drop VSIZE 
     ret 
 
+;----------------
+; convert integer 
+; to ASCII and 
+; send it 
+; input:
+;   X    integer 
+;-----------------
+send_parameter:
+    pushw y 
+    push #0 
+1$:
+    ld a,#10 
+    div x,a 
+    add a,#'0 
+    push a 
+    tnzw x 
+    jrne 1$
+2$:
+    pop a 
+    tnz a 
+    jreq 9$ 
+    call uart_putc 
+    jra 2$ 
+9$:
+    popw y 
+    ret 
+
+
 ;------------------------
 ;  application program 
 ;  commande ESC_ 
+;  ESC_C  send character under cursor 
+;  ESC_V  print terminal firmware version 
 ;------------------------
-proccess_app_cmd:
+process_app_cmd:
     call uart_getc 
     cp a,#'C 
-    jrne 9$ 
+    jrne 1$ 
 ; ESC_C return character at cursor position
     call get_char_under
     call uart_putc
+1$: 
+    cp a,#'V 
+    jrne 9$
+    ldw x,#MAJOR
+    call tv_print_int
+    ld a,#'. 
+    call tv_print_char 
+    ldw x,#MINOR 
+    call tv_print_int 
+    ld a,#'R
+    call tv_print_char 
+    ldw x,#REV 
+    call tv_print_int 
+    ld a,#CR 
+    call tv_print_char 
 9$: 
     ret 
+
+;-------------------
+; print integer in X 
+; to terminal 
+; INPUT:
+;    X   integer 
+;--------------------
+    DIGIT=1
+    VSIZE=DIGIT+1
+tv_print_int:
+    push #0 
+    push #0
+    push #0 
+1$: 
+    ld a,#10 
+    div x,a 
+    add a,#'0
+    push a 
+    tnzw x 
+    jrne 1$
+2$:
+    pop a 
+    tnz a 
+    jreq 9$
+    call tv_print_char 
+    jra 2$ 
+9$:
+    _drop 2 
+    ret 
+
 
 ;----------------------
 ; get control sequence 
