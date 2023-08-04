@@ -393,10 +393,10 @@ process_csi:
 ; second parameter     
     call get_parameter 
     ldw (PM,sp),x
-2$:; recognize 'A','B','C','D','G','d','H' and 'n'  
+2$:; recognize 'A','B','C','D','G','d','H','n','s','u'  
     cp a,#'G 
     jrne 3$ 
-; put cursor a column
+; put cursor at column PN  
     ldw x,(PN,sp) ; Pn e|{1..62}
     jreq 22$ 
     decw x 
@@ -407,7 +407,7 @@ process_csi:
 3$:    
     cp a,#'d 
     jrne 4$ 
-; put cursor at line 
+; put cursor at line PN  
     ldw x,(PN,sp) ; Pn e|{1..25}
     jreq 32$ 
     decw x 
