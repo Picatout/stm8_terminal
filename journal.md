@@ -1,3 +1,7 @@
+### 2023-08-05 
+
+* Modifié l'interface clavier pour que l'hôte puisse envoyer une commande au clavier afin de contrôler l'état des LEDs **Maj. lock** **Num. lock**.
+
 ### 2023-08-04
 
 * Modifié le caractère soulignement dans le fichier [font.asm](font.asm).

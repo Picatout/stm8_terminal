@@ -25,14 +25,21 @@
 ;   host read bit when clock low  
 ;------------------------------------
 
+; keyboard port registers 
 PS2_PORT=PB_BASE
+PS2_ODR=PB_ODR 
+PS2_IDR=PB_IDR 
+PS2_CR1=PB_CR1 
+PS2_CR2=PB_CR2 
+PS2_DDR=PB_DDR 
+; keyboard pins 
 PS2_CLK=0  ; PB:0 
 PS2_DATA=1 ; PB:1 
 
 ; kbd_state flags 
-F_SCRLL =	0 ; scroll lock kbd_leds
+F_SEND = 0 ; host sending command to keyboard 
 F_NUM =	1 ; numlock kbd_leds
-F_CAPS =	2 ; capslock kbd_leds
+F_CAPS = 2 ; capslock kbd_leds
 F_SHIFT =	3  ; SHIFT key down 
 F_CTRL =	4  ; CTRL key down 
 F_ALT =	5  ; ALT key down 
@@ -49,6 +56,11 @@ WAIT_START=0
 DATA_BIT=1 
 PARITY_BIT=2 
 STOP_BIT=3 
+; transmit byte to keyboard phases 
+SEND_BITS=0 
+SEND_PARITY=1 
+SEND_STOP=2
+RCV_ACK=3 
 
 ;--------------------------------
     .area CODE 
@@ -61,16 +73,20 @@ STOP_BIT=3
 ps2_init:
 ; set external interrupt
 ; on ps2_clk falling edge 
-; set as imput 
-    bres PB_DDR,#PS2_CLK 
-    bres PB_DDR,#PS2_DATA
-; remove internal pull up      
-    bres PB_CR1,#PS2_CLK 
-    bres PB_CR1,#PS2_DATA 
+; set as input 
+    bres PS2_DDR,#PS2_CLK 
+    bres PS2_DDR,#PS2_DATA
+; remove internal pull up
+; make it open drain when in output mode      
+    bres PS2_CR1,#PS2_CLK 
+    bres PS2_CR1,#PS2_DATA 
 ; enable external interrup on PB falling edge only 
     mov EXTI_CR1,#(2<<2) 
+; enable TIMER4 clock 
+	bset CLK_PCKENR1,#CLK_PCKENR1_TIM4
+
 ; enable external interrupt on PS2_CLK        
-    bset PB_CR2,#PS2_CLK   
+    bset PS2_CR2,#PS2_CLK   
 ; reset all variables      
     _clrz sc_qhead 
     _clrz sc_qtail
@@ -101,7 +117,7 @@ sc_rx_error:
     _clrz sc_rx_phase 
     iret         
 rx_start_bit:
-    btjt PB_IDR,#PS2_DATA,sc_rx_error
+    btjt PS2_IDR,#PS2_DATA,sc_rx_error
     bres sc_rx_phase,#F_RX_ERR  
     ld a,#128 
     _straz in_byte 
@@ -109,7 +125,7 @@ rx_start_bit:
     _incz sc_rx_phase 
     iret  
 rx_data_bit:
-    btjf PB_IDR,#PS2_DATA,1$
+    btjf PS2_IDR,#PS2_DATA,1$
     _incz parity 
 1$: 
     rrc in_byte 
@@ -117,24 +133,162 @@ rx_data_bit:
     _incz sc_rx_phase 
 9$: iret 
 rx_parity_bit:
-    btjf PB_IDR,#PS2_DATA,1$
+    btjf PS2_IDR,#PS2_DATA,1$
     _incz parity 
 1$:      
     _incz sc_rx_phase 
     iret  
 rx_stop_bit: 
-    btjf PB_IDR,#PS2_DATA,sc_rx_error 
+    btjf PS2_IDR,#PS2_DATA,sc_rx_error 
 ; check parity, bit 0, should be set  
     btjf parity,#0,sc_rx_error 
     _clrz sc_rx_phase 
     call store_scan_code 
     iret 
 
+;----------------------------------
+; host send a byte to keyboard
+; input:
+;   A      byte to send 
+;----------------------------------
+    .macro _wait_ack 
+    btjf kbd_state,#F_ACK,. 
+    .endm 
+
+    .macro _wait_clk_low
+    btjt PS2_IDR,#PS2_CLK,. 
+    .endm 
+
+    .macro _wait_clk_high 
+    btjf PS2_IDR,#PS2_CLK,. 
+    .endm 
+
+    .macro _wait_kbd_clk 
+        _wait_clk_high 
+        _wait_clk_low 
+    .endm 
+
+send_to_keyboard:
+    _straz out_byte 
+    mov tx_bit_cntr,#8
+    _clrz tx_parity
+; disable video output 
+    clr a 
+    call video_on_off 
+; take control of clock line 
+    bset PS2_DDR,#PS2_CLK
+    bres PS2_ODR,#PS2_CLK 
+; set TIMER4 for 150µsec delay 
+; base on 20Mhz sysclock 
+    bres TIM4_CR1,#TIM4_CR1_CEN
+    mov TIM4_PSCR,#4 ; Fsys/16 
+    mov TIM4_ARR,#69 
+	clr TIM4_SR 
+    mov TIM4_CR1,#((1<<TIM4_CR1_CEN)|(1<<TIM4_CR1_URS))
+    btjf TIM4_SR,#TIM4_SR_UIF,.
+	bres TIM4_CR1,#TIM4_CR1_CEN 
+;take control of data line
+; and reset it, start bit 
+    bset PS2_DDR,#PS2_DATA 
+    bres PS2_ODR,#PS2_DATA 
+; release clock line 
+    bres PS2_DDR,#PS2_CLK
+1$: ; data bit loop 
+    _wait_clk_high  
+    _wait_clk_low
+    srl out_byte 
+    bccm PS2_ODR,#PS2_DATA
+    jrnc 2$ 
+    _incz tx_parity
+2$: 
+    _decz tx_bit_cntr 
+    jrne 1$ 
+; send parity bit
+    _wait_kbd_clk 
+    srl tx_parity 
+    ccf 
+    bccm PS2_ODR,#PS2_DATA 
+; send stop bit, release data line  
+    _wait_kbd_clk 
+    bres PS2_DDR,#PS2_DATA
+    _wait_clk_high
+; wait for both lines low 
+3$:
+    ld a,PS2_IDR 
+    and a,#(1<<PS2_CLK)|(1<<PS2_DATA)
+    jrne 3$ 
+; wait both lines high 
+4$: ld a,PS2_IDR 
+    and a,#(1<<PS2_CLK)|(1<<PS2_DATA)
+    cp a,#(1<<PS2_CLK)|(1<<PS2_DATA)
+    jrne 4$ 
+; enable interrupts 
+    ld a,#1 
+    call video_on_off
+    call timer4_init 
+    ret 
+
+;------------------------
+; expect a ACK from 
+; keyboard 
+;------------------------
+wait_ack:
+    clrw x 
+1$: btjt kbd_state,#F_ACK,9$
+    decw x
+    jrne 1$ 
+9$:
+    ret 
+
+;-------------------------
+; set keyboard LED state 
+; input:
+;    A    LEDs state 
+;         CAPSLOCK bit 0 
+;         NUMLOCK  bit 1 
+;         SCRLOCK bit 2 
+;-------------------------
+set_kbd_leds:
+    push a 
+    ld a,#KBD_LED
+    bres kbd_state,#F_ACK 
+    call send_to_keyboard 
+    call wait_ack
+    btjf kbd_state,#F_ACK,reset_kbd  
+    pop a 
+    bres kbd_state,#F_ACK 
+    call send_to_keyboard
+    call wait_ack 
+    btjf kbd_state,#F_ACK,reset_kbd  
+    ret 
+
+;--------------------------
+; send reset command 
+; to keyboard 
+;--------------------------
+reset_kbd:
+    ld a,#KBD_RESET 
+    call send_to_keyboard
+    ret 
+
+
 ;----------------
 ; store in_byte 
 ; in sc_queue 
 ;---------------
 store_scan_code:
+    ld a,#KBD_ACK 
+    cp a,in_byte 
+    jrne 1$
+    bset kbd_state,#F_ACK 
+    jra 9$
+1$:
+    ld a,#BAT_OK 
+    cp a,in_byte 
+    jrne 2$ 
+    bset kbd_state,#F_BATOK 
+    jra 9$ 
+2$:
     ld a,#sc_queue
     add a,sc_qtail 
     clrw x 
@@ -145,6 +299,7 @@ store_scan_code:
     inc a 
     and a,#SC_QUEUE_SIZE-1 
     _straz sc_qtail  
+9$:
     ret 
 
 ;----------------------
@@ -182,24 +337,9 @@ wait_next_code:
     jreq wait_next_code 
     ret 
 
-;-----------------------------
-; check SHIFT,CTRL,ALT key down 
-; get alternate character if so.
-; input:
-;   A      ASCII char without alteration 
-; output:
-;   A      alternate char if so.
-;------------------------------
-check_for_alteration:
-    pushw x 
-    push a 
-
-    popw x 
-    ret 
-
 ;------------------------
 ; check if key is any of 
-; SHIFT,CTRL,ALT, CAPSLOCK  
+; SHIFT,CTRL,ALT, CAPSLOCK,NUMLOCK   
 ; set flag if required 
 ; input:
 ;   A     code 
@@ -211,8 +351,18 @@ state_flag:
     jrne 0$ 
     btjt sc_rx_flags,#F_REL,89$
     bcpl kbd_state,#F_CAPS 
+12$:
+    ld a,kbd_state
+    and a,#(1<<F_CAPS)|(1<<F_NUM)
+    call set_kbd_leds 
     jra 89$ 
 0$:
+    cp a,#VK_NUM
+    jrne 14$
+    btjt sc_rx_flags,#F_REL,89$
+    bcpl kbd_state,#F_NUM  
+    jra 12$ 
+14$: 
     cp a,#VK_LSHIFT 
     jrne 1$
     jra 2$ 

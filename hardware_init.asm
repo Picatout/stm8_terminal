@@ -110,6 +110,11 @@ in_byte:  .blkb 1 ; shift in byte buffer
 parity:   .blkb 1 ; parity bit 
 sc_rx_flags: .blkb 1 ; receive code flags 
 sc_rx_phase: .blkb 1 ; scan code receive phase 
+;; transmission to keyboard variables 
+out_byte: .blkb 1 ; send byte to keyboard 
+tx_bit_cntr: .blkb 1 ;bit counter for out_byte shifting.
+tx_phase: .blkb 1 ; sending to keyboard phases 
+tx_parity: .blkb 1 ; parity counter  
 
 KBD_QUEUE_SIZE=16
 kbd_queue: .blkb KBD_QUEUE_SIZE 
@@ -271,9 +276,8 @@ cold_start:
     ldw y,#CLK_SWR_HSE 
 	call clock_init	
 	call uart_init
-	call ntsc_init ;
-	call timer4_init
 	call ps2_init    
 	rim ; enable interrupts 
-	call tv_cls 
+	call ntsc_init ;
+	call timer4_init
 	jp main ; in tv_term.asm 
