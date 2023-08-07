@@ -1,5 +1,8 @@
 ### 2023-08-05 
 
+* V1.0R12 
+    * Corrigé bogue **CTRL_lettre** ne fonctionnait pas lorsque le **verr.Maj** était activé.
+
 * Modifié l'interface clavier pour que l'hôte puisse envoyer une commande au clavier afin de contrôler l'état des LEDs **Maj. lock** **Num. lock**.
 
 ### 2023-08-04

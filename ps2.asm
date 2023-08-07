@@ -455,7 +455,8 @@ if_ctrl_down:
     btjf kbd_state,#F_CTRL,9$ 
     call is_alpha 
     jrnc 2$
-    sub a,#'a-1 ; CTRL+letter converted to {1..26}
+    and a,#0xDF ; upper case letter 
+    sub a,#'A-1 ; CTRL+letter converted to {1..26}
     jra 3$
 2$:
     ldw x,#control_codes
@@ -542,9 +543,9 @@ translate_code:
 3$:
     call state_flag 
     jreq 9$ 
-    call if_shifted
-    jrc 9$ 
     call if_ctrl_down
+    jrc 9$ 
+    call if_shifted
     jrc 9$ 
     call if_alt_down  
 9$:
