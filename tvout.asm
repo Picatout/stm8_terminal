@@ -16,8 +16,11 @@
 ;     along with stm8_terminal.  If not, see <http://www.gnu.org/licenses/>.
 ;;
 
-
-DTR=3 ; DTR on PC:3 
+DTR_ODR=PC_ODR 
+DTR_DDR=PC_DDR 
+DTR_CR1=PC_CR1 
+DTR_CR2=PC_CR2 
+DTR_PIN=3 ; DTR_PIN on PC:3 
 
 CHAR_PER_LINE==62
 LINE_PER_SCREEN==25 
@@ -68,9 +71,9 @@ ntsc_init:
     bset PC_CR1,#6
     bset PC_CR2,#6
 ; set PC:3 as DTR output 
-    bset PC_CR1,#DTR ; push-pull output 
-    bset PC_DDR,#DTR 
-    bres PC_ODR,#DTR      
+    bset DTR_CR1,#DTR_PIN ; push-pull output 
+    bset DTR_DDR,#DTR_PIN 
+    bres DTR_ODR,#DTR_PIN      
 .if 1 
     clr SPI_SR 
     clr SPI_DR 
@@ -227,6 +230,7 @@ sync_exit:
 ;----------------------------------
     .macro _shift_out_scan_line
         n=0
+
         .rept CHAR_PER_LINE
             ldw y,x  ; 1cy 
             ldw y,(n,y)  ; 2 cy 
@@ -244,7 +248,7 @@ ntsc_video_interrupt:
     _vars VSIZE
     clr (FONT_ROW,sp) 
     clr TIM1_SR1
-    bset PC_ODR,#DTR 
+    bset DTR_ODR,#DTR_PIN 
     ld a,TIM1_CNTRL 
     and a,#7 
     push a 
@@ -286,7 +290,7 @@ jitter_cancel:
     bres TIM1_IER,#TIM1_IER_CC2IE
     bset TIM1_IER,#TIM1_IER_UIE
 3$: btjt ntsc_flags,#F_NO_DTR,4$
-    bres PC_ODR,#DTR  
+    bres DTR_ODR,#DTR_PIN  
 4$:
     _drop VSIZE 
     iret 

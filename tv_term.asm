@@ -94,31 +94,37 @@ tv_enable_cursor:
 ;--------------------------
 ;  clear tv screen 
 ;--------------------------
+    CNTR=1 
+    CHAR_ADR=CNTR+2
+    VSIZE=CHAR_ADR+1
 tv_cls:
     pushw x 
     pushw y 
     push a 
+    _vars VSIZE 
     call tv_disable_cursor 
+    bset ntsc_flags,#F_NO_DTR
     ld a,#BLOCK 
     _straz char_cursor
     ld a,#BLANK 
     _straz char_under  
-    ldw y,#CHAR_PER_LINE*LINE_PER_SCREEN
-    ld a,#BLANK  
     call font_char_address
-    pushw x 
+    ldw (CHAR_ADR,sp),x 
+    ldw x,#CHAR_PER_LINE*LINE_PER_SCREEN
+    ldw (CNTR,sp),x 
     ldw x,#video_buffer 
-1$: ld a,(1,sp)
-    ld (x),a
-    ld a,(2,sp)
-    ld (1,x),a 
-    addw x,#2  
+1$: ldw y,(CHAR_ADR,sp)
+    ldw (x),y 
+    addw x,#2 
+    ldw y,(CNTR,sp)
     decw y 
+    ldw (CNTR,sp),y 
     jrne 1$ 
-    _drop 2 
     _clrz cursor_x 
     _clrz cursor_y    
     call tv_enable_cursor 
+    bres ntsc_flags,#F_NO_DTR 
+    _drop VSIZE 
     pop a 
     popw y 
     popw x 
@@ -244,6 +250,7 @@ tv_scroll_up:
     pushw y
     push a  
     bset ntsc_flags,#F_NO_DTR ; block terminal from receiving characters 
+    bset DTR_ODR,#DTR_PIN 
     ldw x,#2*(CHAR_PER_LINE*LINE_PER_SCREEN-CHAR_PER_LINE)
     _strxz acc16 
     ldw x,#video_buffer 
@@ -263,32 +270,24 @@ tv_scroll_up:
 ; input:
 ;   A     line# {0..24}
 ;-------------------------------
-    BLANK_ADR=1 ; address of blank character in font table 
-    LINE_OFFSET=BLANK_ADR+2 ; offset of line# in video_buffer 
-    VSIZE=LINE_OFFSET+1 
 tv_clear_line:
     pushw x 
     pushw y
-    _vars VSIZE 
-    ldw y,#CHAR_PER_LINE ; fill counter 
-; line offset=2*LINE#*CHAR_PER_LINE     
-    sll a 
-    ldw x,#CHAR_PER_LINE   
-    mul x,a ; line offset 
-    addw x,#video_buffer
-    ldw (LINE_OFFSET,sp),x
+    push a 
     ld a,#BLANK 
     call font_char_address
-    ldw (BLANK_ADR,sp),x
-    ldw x,(LINE_OFFSET,sp) 
-0$: ld a,(BLANK_ADR,sp)
-    ld (x),a 
-    ld a,(BLANK_ADR+1,sp)
-    ld (1,x),a 
+    ldw y,x 
+    pop a 
+    ldw x,#2*CHAR_PER_LINE 
+    mul x,a 
+    addw x,#video_buffer 
+    push #CHAR_PER_LINE 
+1$:
+    ldw (x),y 
     addw x,#2 
-    decw y 
-    jrne 0$
-    _drop VSIZE 
+    dec (1,sp)
+    jrne 1$
+    pop a 
     popw y 
     popw x  
     ret 
@@ -333,14 +332,9 @@ tv_delback:
 ;---------------------------
 tv_print_char:
     call tv_disable_cursor
-    and a,#127 
+;    and a,#127 
     cp a,#SPACE  
     jrpl 8$ 
-    cp a,#CTRL_E
-    jrne 0$
-    bcpl ntsc_flags,#F_LECHO
-    jra 9$ 
-0$: 
     cp a,#BS 
     jrne 1$ 
     call tv_delback
@@ -580,18 +574,19 @@ send_parameter:
 ;  application program 
 ;  commande ESC_ 
 ;  ESC_C  send character under cursor 
-;  ESC_V  print terminal firmware version 
+;  ESC_V  print terminal firmware version
 ;------------------------
 process_app_cmd:
     call uart_getc 
     cp a,#'C 
     jrne 1$ 
 ; ESC_C return character at cursor position
-    call get_char_under
+    _ldaz char_under 
     call uart_putc
+    jra 9$ 
 1$: 
     cp a,#'V 
-    jrne 9$
+    jrne 2$
     ldw x,#MAJOR
     call tv_print_int
     ld a,#'. 
@@ -603,7 +598,9 @@ process_app_cmd:
     ldw x,#REV 
     call tv_print_int 
     ld a,#CR 
-    call tv_print_char 
+    call tv_print_char
+    jra 9$ 
+2$:
 9$: 
     ret 
 

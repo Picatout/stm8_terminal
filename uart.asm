@@ -34,9 +34,9 @@
 UartRxHandler: ; console receive char 
 	btjf UART_SR,#UART_SR_RXNE,5$ 
 	ld a,UART_DR 
-	cp a,#CAN ; CTRL_X 
-	jrne 1$
-	_swreset 	
+;	cp a,#CAN ; CTRL_X 
+;	jrne 1$
+;	_swreset 	
 1$:
 	push a 
 	ld a,#rx1_queue 
@@ -176,7 +176,7 @@ uart_space:
 qgetc::
 uart_qgetc::
 	_ldaz rx1_head 
-	sub a,rx1_tail 
+	cp a,rx1_tail 
 	ret 
 
 ;---------------------------------

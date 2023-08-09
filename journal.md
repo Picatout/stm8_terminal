@@ -1,3 +1,17 @@
+### 2023-08-08
+
+* Tag V1.0R13 
+
+* Corrigé bogue perte de caractères lors d'un défilement vers le haut.
+
+* Réécriture de la routie *tv_clear_line*. 
+
+* Réécriture de *tv_cls**. Bloqué signal DTR pendant cette opération pour éliminer la perte de caractères en réception uart.
+
+### 2023-08-06
+
+* Corrigé bogue avec **CTRL+lettre** qui ne fonctionnait pas lorsque la touche Verr. Maj. était activée.
+
 ### 2023-08-05 
 
 * V1.0R12 
