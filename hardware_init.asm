@@ -77,7 +77,7 @@ stack_unf: ; stack underflow ; RAM end +1 -> 0x1800
 	int NonHandledInterrupt ;int21 UART3 RX full
 .endif 
 	int NonHandledInterrupt ;int22 ADC2 end of conversion
-	int timer4_update_handler	;int23 TIM4 update/overflow ; use to blink tv cursor 
+	int NonHandledInterrupt	;int23 TIM4 update/overflow ; use to blink tv cursor 
 	int NonHandledInterrupt ;int24 flash writing EOP/WR_PG_DIS
 	int NonHandledInterrupt ;int25  not used
 	int NonHandledInterrupt ;int26  not used
@@ -131,7 +131,7 @@ font_addr: .blkw 1 ; font table address
 ; tv terminal variables 
 cursor_x: .blkb 1 
 cursor_y: .blkb 1 
-cursor_delay: .blkw 1 ;  333 msec  delay 
+cursor_delay: .blkb 1 ;  20/60 sec delay 
 char_under: .blkb 1 ; character under cursor 
 char_cursor: .blkb 1 ; character used for cursor 
 saved_cx: .blkb 1 ; saved cursor position
@@ -279,5 +279,4 @@ cold_start:
 	call ps2_init    
 	rim ; enable interrupts 
 	call ntsc_init ;
-	call timer4_init
 	jp main ; in tv_term.asm 

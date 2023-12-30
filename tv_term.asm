@@ -26,33 +26,16 @@ BLOCK=95+32
 UNDERLINE=101+32 
 INSERT=102+32 
 
-;-----------------------
-; TIMER4 is use to 
-; blink TV cursor 
-;-----------------------
-timer4_init:
-; set for millisecond interrupt 
- 	bset CLK_PCKENR1,#CLK_PCKENR1_TIM4
-    mov TIM4_PSCR,#7
-    mov TIM4_ARR,#155
-	mov TIM4_CR1,#((1<<TIM4_CR1_CEN)|(1<<TIM4_CR1_URS))
-	bset ntsc_flags,#F_CURSOR 
-	bset TIM4_IER,#TIM4_IER_UIE
-    ret 
-
-CURSOR_DELAY=300 ; msec 
+CURSOR_DELAY=20 ; msec 
 ;----------------------------------
 ; decrement cursro_delay 
 ; when zero toggle cursor state 
 ;--------------------------------
-timer4_update_handler:
+cursor_blink_handler:
+    push a 
     btjf ntsc_flags,#F_CURSOR,9$ 
-    _ldxz cursor_delay 
-    decw x 
-    _strxz cursor_delay
+    _decz cursor_delay 
     jrne 9$ 
-    ldw x,#CURSOR_DELAY 
-    _strxz cursor_delay 
     btjf ntsc_flags,#F_CUR_VISI,2$ 
     ld a,char_cursor  
     jra 8$ 
@@ -60,14 +43,16 @@ timer4_update_handler:
 8$: 
     call tv_put_char 
     bcpl ntsc_flags,#F_CUR_VISI 
-9$: clr TIM4_SR
-    iret 
+    ld a,#CURSOR_DELAY 
+    _straz cursor_delay
+9$: pop a 
+    ret 
+
 
 ;------------------
 ; disable tv cursor 
 ;------------------
 tv_disable_cursor:
-    bres TIM4_CR1,#TIM4_CR1_CEN 
     bres ntsc_flags,#F_CURSOR 
     bres ntsc_flags,#F_CUR_VISI
     push a 
@@ -83,10 +68,9 @@ tv_enable_cursor:
     pushw x 
     call get_char_under 
     _straz char_under 
-    ldw x,#CURSOR_DELAY  
-    _strxz cursor_delay 
+    ld a,#CURSOR_DELAY  
+    _straz cursor_delay 
     bset ntsc_flags,#F_CURSOR
-    bset TIM4_CR1,#TIM4_CR1_CEN  
     popw x 
     ret 
 

@@ -225,7 +225,6 @@ send_to_keyboard:
 ; enable interrupts 
     ld a,#1 
     call video_on_off
-    call timer4_init 
     ret 
 
 ;------------------------

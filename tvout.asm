@@ -52,6 +52,7 @@ F_CUR_VISI=2 ; tv cursor state, 1 visible
 F_LECHO=3 ; local echo 
 F_VIDEO=4 ; enable video output 
 F_NO_DTR=5 ; forbid DTR during some operation
+F_CUR_TOGGLE=6 ; time to toggle cursor state 
 
 ;-------------------------------
     .area CODE 
@@ -74,11 +75,9 @@ ntsc_init:
     bset DTR_CR1,#DTR_PIN ; push-pull output 
     bset DTR_DDR,#DTR_PIN 
     bres DTR_ODR,#DTR_PIN      
-.if 1 
     clr SPI_SR 
+    mov SPI_CR1,#(1<<SPI_CR1_SPE)|(1<<SPI_CR1_MSTR) 
     clr SPI_DR 
-    mov SPI_CR1,#(1<<SPI_CR1_SPE)|(1<<SPI_CR1_MSTR)
-.endif 
 ; initialize timer1 for pwm
 ; generate NTSC sync signal  
     mov TIM1_IER,#1 ; UIE set 
@@ -106,6 +105,8 @@ ntsc_init:
     call tv_cls 
     call tv_enable_cursor
     bset TIM1_CR1,#TIM1_CR1_CEN 
+    ld a,#CURSOR_DELAY
+    _straz cursor_delay
     ld a,#1
     call video_on_off 
     ret 
@@ -122,10 +123,12 @@ video_on_off:
     jreq 1$ 
 ; enable video 
     bset ntsc_flags,#F_VIDEO 
+    bset ntsc_flags,#F_CURSOR
     bset TIM1_IER,#TIM1_IER_UIE 
     ret     
 1$: ; disable video 
     bres ntsc_flags,#F_VIDEO 
+    bres ntsc_flags,#F_CURSOR
     bres TIM1_IER,#TIM1_IER_CC2IE 
     bset TIM1_IER,#TIM1_IER_UIE 
     ret 
@@ -197,6 +200,11 @@ ntsc_sync_interrupt:
 test_pre_video:
     cp a,#PH_PRE_VIDEO 
     jrne post_video  
+    cpw x,#20 
+    jrne 2$
+    call cursor_blink_handler
+    jra sync_exit
+2$:
     cpw x,#FIRST_VIDEO_LINE
     jrne sync_exit 
     inc a 
@@ -277,11 +285,12 @@ jitter_cancel:
     ld a,#2*CHAR_PER_LINE  
     mul x,a  ; video_buffer line  
     addw x,#video_buffer
-    bset SPI_CR1,#SPI_CR1_SPE  
+;    bset SPI_CR1,#SPI_CR1_SPE  
+clr SPI_DR
     _shift_out_scan_line
     btjf SPI_SR,#SPI_SR_TXE,.
     clr SPI_DR
-    bres SPI_CR1,#SPI_CR1_SPE  
+;    bres SPI_CR1,#SPI_CR1_SPE  
     _ldxz scan_line 
     incw x 
     _strxz scan_line 
