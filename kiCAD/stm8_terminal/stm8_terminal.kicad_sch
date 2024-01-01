@@ -7742,25 +7742,6 @@
     (pin "2" (uuid e965de4c-09ae-44cc-9b07-e4b77929ee02))
   )
 
-  (symbol (lib_id "Device:C") (at 128.27 114.3 0) (unit 1)
-    (in_bom yes) (on_board yes) (fields_autoplaced)
-    (uuid 141ad850-4428-4f02-9634-53c9c9f30976)
-    (property "Reference" "C2" (id 0) (at 131.445 113.0299 0)
-      (effects (font (size 1.27 1.27)) (justify left))
-    )
-    (property "Value" "100nF" (id 1) (at 131.445 115.5699 0)
-      (effects (font (size 1.27 1.27)) (justify left))
-    )
-    (property "Footprint" "" (id 2) (at 129.2352 118.11 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (property "Datasheet" "~" (id 3) (at 128.27 114.3 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (pin "1" (uuid 82824bee-ed69-4101-a402-aa5a579631fe))
-    (pin "2" (uuid badc7a41-60f0-4185-8924-a6d69e8f4ca6))
-  )
-
   (symbol (lib_id "power:GND") (at 148.59 61.595 0) (unit 1)
     (in_bom yes) (on_board yes) (fields_autoplaced)
     (uuid 158c066a-0c48-4461-89d7-0dc64c789cd1)
@@ -8075,22 +8056,6 @@
     (pin "1" (uuid 62030b55-2486-4279-9f09-fd263bc8c6e9))
   )
 
-  (symbol (lib_id "power:GND") (at 128.27 118.11 0) (unit 1)
-    (in_bom yes) (on_board yes) (fields_autoplaced)
-    (uuid 845855d3-4d0e-4980-8991-a5f84e6b7908)
-    (property "Reference" "#PWR05" (id 0) (at 128.27 124.46 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (property "Value" "GND" (id 1) (at 128.27 123.19 0))
-    (property "Footprint" "" (id 2) (at 128.27 118.11 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (property "Datasheet" "" (id 3) (at 128.27 118.11 0)
-      (effects (font (size 1.27 1.27)) hide)
-    )
-    (pin "1" (uuid f74c3bf9-6c38-4cb7-9c35-17b1fc425741))
-  )
-
   (symbol (lib_id "Device:C_Polarized") (at 112.395 55.88 0) (unit 1)
     (in_bom yes) (on_board yes) (fields_autoplaced)
     (uuid 8d573334-f4c2-48ea-9ae5-8e339d18faef)
@@ -8378,9 +8343,6 @@
     (path "/bc5fcb43-d21e-43fa-91ab-ec0f31f8666d"
       (reference "#PWR04") (unit 1) (value "GND") (footprint "")
     )
-    (path "/845855d3-4d0e-4980-8991-a5f84e6b7908"
-      (reference "#PWR05") (unit 1) (value "GND") (footprint "")
-    )
     (path "/d18cab06-a3b9-490f-bba2-3968ae23ef3a"
       (reference "#PWR06") (unit 1) (value "GND") (footprint "")
     )
@@ -8407,9 +8369,6 @@
     )
     (path "/8d573334-f4c2-48ea-9ae5-8e339d18faef"
       (reference "C1") (unit 1) (value "4700µF/25V") (footprint "")
-    )
-    (path "/141ad850-4428-4f02-9634-53c9c9f30976"
-      (reference "C2") (unit 1) (value "100nF") (footprint "")
     )
     (path "/e24a0cb3-c996-41e3-aea6-3ef71e605019"
       (reference "C3") (unit 1) (value "100µF/16V") (footprint "")
