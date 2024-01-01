@@ -248,7 +248,7 @@ sync_exit:
              ld SPI_DR,a ; 1 cy 
             n=n+2 
         .endm ;
-    .endm  8 cy
+    .endm  9 cy
 
     FONT_ROW=1 ; font_char_row  
     VSIZE=2  
@@ -266,7 +266,6 @@ ntsc_video_interrupt:
     _drop 2 
     jp (x)
 jitter_cancel:
-    nop 
     nop 
     nop 
     nop 
