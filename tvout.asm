@@ -19,7 +19,7 @@
 DTR_ODR=PC_ODR 
 DTR_DDR=PC_DDR 
 DTR_CR1=PC_CR1 
-DTR_CR2=PC_CR2 
+DTR_CR2=PC_CR2
 DTR_PIN=3 ; DTR_PIN on PC:3 
 
 CHAR_PER_LINE==62
@@ -29,7 +29,7 @@ VISIBLE_SCAN_LINES=200
 ; values based on 20 Mhz crystal
 
 FR_HORZ=15734
-HLINE=(FMSTR*1000/FR_HORZ-1); horizontal line duration 
+HLINE=(FMSTR*1000000/FR_HORZ-1); horizontal line duration 
 HALF_LINE=HLINE/2 ; half-line during sync. 
 EPULSE=47 ; pulse width during pre and post equalization
 VPULSE=546 ; pulse width during vertical sync. 

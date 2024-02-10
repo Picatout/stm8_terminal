@@ -51,7 +51,7 @@ UartRxHandler: ; console receive char
 	ld rx1_tail,a 
 5$:	iret 
 
-; values for 20Mhz Fmaster 
+; values for 20Mhz FMSTR  
 baud_rate: .word 0x823,0x412,0x209,0xae  
 
 ;---------------------------------------------
@@ -84,15 +84,15 @@ uart_init:
 3$: rlc a 
 ; get BRR value from table 
 	sll a 
-	push a 
+	push a
 	push #0 
 	ldw x,#baud_rate
 	addw x,(1,sp)
 	ldw x,(x)
-; a little complicated because 
+; a little complicate because 
 ; BRR2= bits  0:3 || (bits 12:15)>>8 
 ; BRR1= bits (bits 4:11) >> 4
-; why do simple when you can do it complicated?  
+; why do simple when you can do it complicate?  
 	ldw (1,sp),x ; save X 
 	ld a,xl 
 	and a,#15

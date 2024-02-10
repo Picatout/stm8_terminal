@@ -95,7 +95,6 @@ KERNEL_VAR_ORG=4
 ; keep the following 3 variables in this order 
 acc16:: .blkb 1 ; 16 bits accumulator, acc24 high-byte
 acc8::  .blkb 1 ;  8 bits accumulator, acc24 low-byte  
-fmstr:: .blkw 1 ; frequency in Mhz of Fmaster
 ptr16::  .blkb 1 ; 16 bits pointer , farptr high-byte 
 ptr8:   .blkb 1 ; 8 bits pointer, farptr low-byte  
 flags:: .blkb 1 ; various boolean flags
@@ -164,6 +163,46 @@ NonHandledInterrupt:
 ;    peripherals initialization
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;----------------------------
+; if FMSTR>16Mhz 
+; program 1 wait state in OPT7 
+;----------------------------
+wait_state:
+	ld a,#FMSTR 
+	cp a,#16 
+	jrule no_ws 
+set_ws:	; for FMSTR>16Mhz 1 wait required 
+	tnz FLASH_WS ; OPT7  
+	jrne opt_done ; already set  
+	ld a,#1 
+	jra prog_opt7 	
+no_ws: ; FMSTR<=16Mhz no wait required 
+	tnz FLASH_WS 
+	jreq opt_done ; already cleared 
+	clr a 
+prog_opt7:
+	call unlock_eeprom 
+	ld FLASH_WS,a 
+	cpl a 
+	ld FLASH_WS+1,a 
+	btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,.
+	btjf FLASH_IAPSR,#FLASH_IAPSR_HVOFF,.
+	_swreset 
+opt_done:
+	ret  
+
+unlock_eeprom:
+	btjt FLASH_IAPSR,#FLASH_IAPSR_DUL,9$
+	mov FLASH_CR2,#0 
+	mov FLASH_NCR2,#0xFF 
+	mov FLASH_DUKR,#FLASH_DUKR_KEY1
+    mov FLASH_DUKR,#FLASH_DUKR_KEY2
+	btjf FLASH_IAPSR,#FLASH_IAPSR_DUL,.
+9$:	
+    bset FLASH_CR2,#FLASH_CR2_OPT
+    bres FLASH_NCR2,#FLASH_CR2_OPT 
+	ret
+
 ;----------------------------------------
 ; inialize MCU clock 
 ; input:
@@ -176,15 +215,13 @@ NonHandledInterrupt:
 clock_init:	
 ; cpu clock divisor 
 	push a   
-	_strxz fmstr
-	ld a,yl ; clock source HSI|HSE 
+	ld a,yl ; clock source CLK_SWR_HSI|CLK_SWR_HSE 
 	bres CLK_SWCR,#CLK_SWCR_SWIF 
 	cp a,CLK_CMSR 
 	jreq 2$ ; no switching required 
 ; select clock source 
-	ld CLK_SWR,a
-	btjf CLK_SWCR,#CLK_SWCR_SWIF,. 
 	bset CLK_SWCR,#CLK_SWCR_SWEN
+	ld CLK_SWR,a
 2$: 
 	pop CLK_CKDIVR   	
 	ret
@@ -270,9 +307,12 @@ cold_start:
 	_led_off 
 ; disable schmitt triggers on Arduino CN4 analog inputs
 	mov ADC_TDRL,0x3f
+    call wait_state 
 ; select external clock no divisor	
-	clr a  
-	ldw x,#FMSTR   ; 14,318 Mhz  4 * NTSC chroma frequency   
+	ld a,#FMSTR ; Mhz 
+	ldw x,#1000
+	mul x,a ; FMSTR in Khz    
+	clr a 
     ldw y,#CLK_SWR_HSE 
 	call clock_init	
 	call uart_init

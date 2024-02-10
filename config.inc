@@ -5,13 +5,13 @@
 DEBUG=0 ; set to 1 to include debugging code 
 
 HSI=0 ; set this to 1 if using internal high speed oscillator  
-.if HSI 
+.if HSI
+FMSTR=16 ; MHZ
 HSE=0
 .else
+FMSTR=20 ; MHZ 
 HSE=1  
 .endif 
-
-FMSTR=20000 ; master clock frequency in KHZ  
 
 
 ; boards list

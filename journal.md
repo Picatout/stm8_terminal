@@ -1,3 +1,9 @@
+### 2024-02-09 
+
+* VERSIION **V1.0R15**
+
+* Ajout de la routine **wait_state** pour reprogrammer **OPT7** car le cristal est à 20 Mhz il faut ajouté un wait state pour l'accès à la mémoire FLASH.
+
 ### 2023-12-30 
 
 * L'interruption du TIMER4 utilisé pour contrôler le clignotement du curseur texte faisait trop d'interférence dans l'affichage vidéo. J'ai donc modifié le code qui maintenant utilise l'interruption du TIMER1 overflow pour contrôler le clignotement du curseur. 
