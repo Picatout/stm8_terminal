@@ -4,13 +4,13 @@
 
 DEBUG=0 ; set to 1 to include debugging code 
 
-HSI=0 ; set this to 1 if using internal high speed oscillator  
-.if HSI
-FMSTR=16 ; MHZ
-HSE=0
+HSI=0 
+HSE=1   
+MAX_FREQ=1 ; 24MHZ maximum frequency, for 20Mhz crystal set to 0 
+.if MAX_FREQ   
+FMSTR=24 ; MHZ
 .else
 FMSTR=20 ; MHZ 
-HSE=1  
 .endif 
 
 

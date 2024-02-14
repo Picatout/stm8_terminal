@@ -207,15 +207,14 @@ unlock_eeprom:
 ; inialize MCU clock 
 ; input:
 ;   A      CLK_CKDIVR , clock divisor
-;   X       Fmaster in Khz 
-;   YL     HSI|HSE   
+;   XL     HSI|HSE   
 ; output:
 ;   none 
 ;----------------------------------------
 clock_init:	
 ; cpu clock divisor 
 	push a   
-	ld a,yl ; clock source CLK_SWR_HSI|CLK_SWR_HSE 
+	ld a,xl ; clock source CLK_SWR_HSI|CLK_SWR_HSE 
 	bres CLK_SWCR,#CLK_SWCR_SWIF 
 	cp a,CLK_CMSR 
 	jreq 2$ ; no switching required 
@@ -226,7 +225,7 @@ clock_init:
 	pop CLK_CKDIVR   	
 	ret
 
-	
+.if 0	
 ;--------------------------
 ; set software interrupt 
 ; priority 
@@ -276,6 +275,7 @@ set_int_priority::
 	ld (x),a 
 	_drop VSIZE 
 	ret 
+.endif 
 
 ;-------------------------------------
 ;  initialization entry point 
@@ -309,14 +309,22 @@ cold_start:
 	mov ADC_TDRL,0x3f
     call wait_state 
 ; select external clock no divisor	
-	ld a,#FMSTR ; Mhz 
-	ldw x,#1000
-	mul x,a ; FMSTR in Khz    
-	clr a 
-    ldw y,#CLK_SWR_HSE 
+	clr a ; FMSTR no divisor 
+    ldw x,#CLK_SWR_HSE ; external clock 
 	call clock_init	
 	call uart_init
 	call ps2_init    
 	rim ; enable interrupts 
 	call ntsc_init ;
+
+.if 0 ; TEST CODE 
+ldw x,#width 
+call tv_puts 
+ldw x,#test 
+call tv_puts 
+jra .   
+test: .asciz "THE QUICK BROWN FOX JUMP OVER THE LAZY DOG.\nThe quick bronw fox jump over the lazy dog.\n"
+width: .asciz "123456789012345678901234567890123456789012345678901234567890123456789012345"
+.endif ; TEST CODE 
+
 	jp main ; in tv_term.asm 

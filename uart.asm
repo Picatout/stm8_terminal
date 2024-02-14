@@ -51,9 +51,20 @@ UartRxHandler: ; console receive char
 	ld rx1_tail,a 
 5$:	iret 
 
-; values for 20Mhz FMSTR  
-baud_rate: .word 0x823,0x412,0x209,0xae  
-
+.if MAX_FREQ 
+; values for 24Mhz FMSTR  
+;   			BRR2,BRR1 
+baud_rate: .byte 0x4,0x9c ; 0x9C4 ; 9600 
+ 		   .byte 0x2,0x4e ; 0x4E2 ; 19200
+		   .byte 0x1,0x27 ; 0x271 ; 38400
+		   .byte 0x0,0x0d ; 0xD0  ; 115200
+.else 
+baud_rate: 
+			.byte 0x3,0x82 ; 0x823 ; 9600 
+			.byte 0x2,0x41 ; 0x412 ; 19200
+			.byte 0x9,0x20 ; 0x209 ; 38400 
+			.byte 0xe,0x0a ; 0xae  ; 115200
+.endif 
 ;---------------------------------------------
 ; initialize UART, read external swtiches SW4,SW5 
 ; to determine required BAUD rate.
@@ -64,11 +75,7 @@ baud_rate: .word 0x823,0x412,0x209,0xae
 ;   none
 ;---------------------------------------------
 BAUD_RATE=115200 
-	N1=1
-	N2=N1+2 
-	VSIZE=N2+2
 uart_init:
-	_vars VSIZE 
 ; enable UART clock
 	bset CLK_PCKENR1,#UART_PCKEN 	
 	bres UART,#UART_CR1_PIEN
@@ -88,26 +95,10 @@ uart_init:
 	push #0 
 	ldw x,#baud_rate
 	addw x,(1,sp)
-	ldw x,(x)
-; a little complicate because 
-; BRR2= bits  0:3 || (bits 12:15)>>8 
-; BRR1= bits (bits 4:11) >> 4
-; why do simple when you can do it complicate?  
-	ldw (1,sp),x ; save X 
-	ld a,xl 
-	and a,#15
-	push a 
-	ld a,xh 
-	and a,#0xf0 
-	or a,(1,sp)
+	_drop 2 
+	ld a,(x)
 	ld UART_BRR2,a 
-	_drop 1 
-	popw x 
-    srlw x 
-	srlw x 
-	srlw x 
-	srlw x 
-	ld a,xl 
+	ld a,(1,x)
 	ld UART_BRR1,a 
     clr UART_DR
 	mov UART_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN)|(1<<UART_CR2_RIEN));
@@ -116,7 +107,6 @@ uart_init:
     clr rx1_head 
 	clr rx1_tail
 	bset UART,#UART_CR1_PIEN
-	_drop VSIZE 
 	ret
 
 

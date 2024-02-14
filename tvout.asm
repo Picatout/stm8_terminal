@@ -22,8 +22,13 @@ DTR_CR1=PC_CR1
 DTR_CR2=PC_CR2
 DTR_PIN=3 ; DTR_PIN on PC:3 
 
-CHAR_PER_LINE==62
-LINE_PER_SCREEN==25 
+.if MAX_FREQ 
+CHAR_PER_LINE=75 ; xtal 24Mhz 
+.else 
+CHAR_PER_LINE=62  ; xtal 20Mhz 
+.endif 
+
+LINE_PER_SCREEN=25 
 VISIBLE_SCAN_LINES=200 
 
 ; values based on 20 Mhz crystal
@@ -34,7 +39,7 @@ HALF_LINE=HLINE/2 ; half-line during sync.
 EPULSE=47 ; pulse width during pre and post equalization
 VPULSE=546 ; pulse width during vertical sync. 
 HPULSE=94 ; 4.7µSec horizontal line sync pulse width. 
-LINE_DELAY=(140) 
+LINE_DELAY=(160) 
 
 ; ntsc synchro phases 
 PH_VSYNC=0 
