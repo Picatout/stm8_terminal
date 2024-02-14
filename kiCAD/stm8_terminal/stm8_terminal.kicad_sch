@@ -7778,7 +7778,7 @@
     (in_bom yes) (on_board yes)
     (uuid 26747773-3488-4cb1-8229-30ef1aeade7f)
     (property "Reference" "R4" (id 0) (at 254.635 78.74 90))
-    (property "Value" "150" (id 1) (at 254.635 81.28 90))
+    (property "Value" "100" (id 1) (at 254.635 81.28 90))
     (property "Footprint" "" (id 2) (at 254.635 83.058 90)
       (effects (font (size 1.27 1.27)) hide)
     )
@@ -8098,7 +8098,7 @@
     (in_bom yes) (on_board yes)
     (uuid a798556e-a1c1-4369-8d5b-478f85bd9f5b)
     (property "Reference" "Y1" (id 0) (at 211.455 121.92 0))
-    (property "Value" "20 Mhz" (id 1) (at 211.455 112.395 0))
+    (property "Value" "24 Mhz" (id 1) (at 211.455 112.395 0))
     (property "Footprint" "" (id 2) (at 211.455 117.475 0)
       (effects (font (size 1.27 1.27)) hide)
     )
@@ -8413,7 +8413,7 @@
       (reference "R3") (unit 1) (value "10K") (footprint "")
     )
     (path "/26747773-3488-4cb1-8229-30ef1aeade7f"
-      (reference "R4") (unit 1) (value "150") (footprint "")
+      (reference "R4") (unit 1) (value "100") (footprint "")
     )
     (path "/b67ff7bf-f5af-4273-8904-9679f573e1a3"
       (reference "R5") (unit 1) (value "270") (footprint "")
@@ -8440,7 +8440,7 @@
       (reference "U1") (unit 1) (value "LD1117V50-TO-220") (footprint "Package_TO_SOT_SMD:SOT-223-3_TabPin2")
     )
     (path "/a798556e-a1c1-4369-8d5b-478f85bd9f5b"
-      (reference "Y1") (unit 1) (value "20 Mhz") (footprint "")
+      (reference "Y1") (unit 1) (value "24 Mhz") (footprint "")
     )
   )
 )

@@ -1,9 +1,11 @@
 ### 2024-02-14 
 
+* Mise à jour version vers **V1.1R0**. 
+
 * Modificaction au circuit. 
     1. Test ave crystal de 24Mhz, permet d'afficher 75 caractères par ligne. 
     1. Réduction de la valeur de la résistance **R4** à 100 ohm. 
-    
+
 * Simplifié routine **uart_init** dans [uart.asm](uart.asm).
 
 ### 2024-02-09 

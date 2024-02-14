@@ -26,11 +26,6 @@
 	STACK_EMPTY=RAM_SIZE-1  
 	
 
-; version 
-    MAJOR=1 
-    MINOR=0 
-    REV=15
-    
 ;--------------------------------------
 ;   assembler flags 
 ;-------------------------------------
